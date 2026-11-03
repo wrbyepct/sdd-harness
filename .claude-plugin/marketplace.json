@@ -1,0 +1,12 @@
+{
+  "name": "sdd-harness",
+  "owner": { "name": "wrbyepct" },
+  "description": "Spec-driven development harness: plan, user story, strict TDD, multi-agent code review.",
+  "plugins": [
+    {
+      "name": "sdd-harness",
+      "source": "./",
+      "description": "Spec-driven development harness for Claude Code: plan → user story → strict TDD build → multi-agent code review with mutation proof."
+    }
+  ]
+}

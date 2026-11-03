@@ -1,0 +1,17 @@
+{
+  "description": "guard-rails: block commits/pushes to protected branches, destructive file restores, and colliding test runs",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/guard_rails.py\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
