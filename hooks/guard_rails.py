@@ -59,17 +59,45 @@ def run_git(args: list[str], cwd: str) -> str | None:
     return r.stdout.strip() if r.returncode == 0 else None
 
 
-def git_dir(command: str, cwd: str) -> str:
-    """`git -C <dir>` 的 dir；含 shell 變數或不存在時退回 cwd（不猜）。"""
-    for pattern in (GIT_COMMIT, GIT_PUSH, GIT_REBASE):
-        m = pattern.search(command)
-        if m and m.group("dir"):
-            d = m.group("dir").strip("\"'")
-            if "$" in d:
-                return cwd
-            p = pathlib.Path(cwd, os.path.expanduser(d))
-            return str(p) if p.is_dir() else cwd
-    return cwd
+UNRESOLVED = (
+    "判斷不出這條 git 指令會作用在哪個 repo（路徑含 shell 變數、`cd -` 或目錄不存在），"
+    "commit／push 先不放行。把路徑寫成實際的目錄再跑。"
+)
+SEGMENT_SPLIT = re.compile(r"&&|\|\||;|\n")
+CD = re.compile(r"^cd(?:\s+(?P<dir>\"[^\"]+\"|'[^']+'|\S+))?\s*$")
+
+
+def resolve_dir(base: str, raw: str | None) -> str | None:
+    """把 cd／-C 的參數解析成絕對路徑；解析不了回 None（不猜）。"""
+    if raw is None:
+        return os.path.expanduser("~")
+    d = raw.strip("\"'")
+    if "$" in d or "`" in d or d == "-":
+        return None
+    p = pathlib.Path(base, os.path.expanduser(d)).resolve()
+    return str(p) if p.is_dir() else None
+
+
+def git_dir(command: str, cwd: str) -> str | None:
+    """git 指令實際作用的目錄：先照順序套用它前面的 `cd`，再套 `git -C`。解析不了回 None。
+
+    hook 收到的 cwd 是 session 的工作目錄，不是 `cd X && git commit` 裡的 X，
+    只看 cwd 會用錯的 repo 判斷分支（例：在豁免的 repo 開 session，cd 到別的 repo 的 main 上 commit）。
+    """
+    here: str | None = cwd
+    for segment in SEGMENT_SPLIT.split(command):
+        seg = segment.strip().lstrip("(").strip()
+        cd = CD.match(seg)
+        if cd:
+            here = resolve_dir(here, cd.group("dir")) if here else None
+            continue
+        for pattern in (GIT_COMMIT, GIT_PUSH, GIT_REBASE):
+            m = pattern.search(seg)
+            if m:
+                if here is None:
+                    return None
+                return resolve_dir(here, m.group("dir")) if m.group("dir") else here
+    return here
 
 
 def load_config(repo_dir: str) -> dict[str, str]:
@@ -161,7 +189,10 @@ def check(command: str, cwd: str) -> None:
 
     is_commit = GIT_COMMIT.search(command)
     push = GIT_PUSH.search(command)
-    repo = git_dir(command, cwd)
+    resolved = git_dir(command, cwd)
+    if resolved is None and (is_commit or push):
+        raise Blocked(UNRESOLVED)
+    repo = resolved or cwd
     config = load_config(repo)
 
     if is_commit or push:
@@ -178,7 +209,10 @@ def check(command: str, cwd: str) -> None:
                     f"這次 push 的目的地是保護分支 `{hit}`（{how}）。走 feature 分支 → PR："
                     "寫明 `git push -u origin <feat>:<feat>`；追蹤錯了先 `git branch --unset-upstream`。"
                 )
-        branch = run_git(["rev-parse", "--abbrev-ref", "HEAD"], repo)
+        # symbolic-ref 在還沒有任何 commit 的 repo（unborn branch）也讀得到分支名；rev-parse 讀不到
+        branch = run_git(["symbolic-ref", "--short", "-q", "HEAD"], repo) or run_git(
+            ["rev-parse", "--abbrev-ref", "HEAD"], repo
+        )
         if branch is None:
             raise RuntimeError(f"讀不到目前分支（git -C {repo}）")
         if branch in protected:

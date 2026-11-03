@@ -135,10 +135,30 @@ class GuardRailsTest(unittest.TestCase):
         self.write_config({"test_cmd": "./run test", "test_busy_check": "true"})
         self.assertAllowed("./run test tests/x.py")
 
-    # 失敗策略：今天實際踩到的情況——`git -C "$var"` 不該讓守門自己崩潰
-    def test_git_dash_c_with_shell_variable_does_not_crash(self) -> None:
+    # 目標 repo 的判斷：hook 收到的 cwd 是 session 的目錄，不是指令裡 cd 過去的那個
+    def make_other_repo_on_main(self) -> pathlib.Path:
+        other = pathlib.Path(self._tmp.name) / "other"
+        git(other.parent, "init", "-q", "-b", "main", str(other))
+        return other
+
+    def test_cd_into_another_repo_on_main_is_blocked(self) -> None:
+        other = self.make_other_repo_on_main()
+        self.assertBlocked(f'cd {other} && git commit -m "x"', "`main`")
+        self.assertBlocked(f"cd {other}; git push origin HEAD:feat-y", "`main`")
+        self.assertBlocked(f'git -C {other} commit -m "x"', "`main`")
+
+    def test_cd_sequence_is_followed_in_order(self) -> None:
+        other = self.make_other_repo_on_main()
+        self.assertAllowed(f'cd {other} && ls && cd {self.repo} && git commit -m "x"')
+        self.assertBlocked(f'cd {self.repo} && cd ../other && git commit -m "x"', "`main`")
+
+    def test_unresolvable_target_blocks_only_commit_and_push(self) -> None:
+        self.assertBlocked('cd "$WORK" && git commit -m "x"', "判斷不出")
+        self.assertBlocked('git -C "$root" push', "判斷不出")
+        self.assertBlocked('cd - && git commit -m "x"', "判斷不出")
+        # 不是 commit／push 的照常放行（守門也不能因此崩潰）
         self.assertAllowed('root=/tmp; git -C "$root" rev-list --all | grep -q .')
-        self.assertAllowed('git -C "$root" commit -m "x"')  # 退回 cwd（feat-x）判斷
+        self.assertAllowed('cd "$WORK" && ls')
 
     def test_ordinary_command_passes(self) -> None:
         self.assertAllowed("ls -la src/")
