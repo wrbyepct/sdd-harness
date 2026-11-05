@@ -1,7 +1,7 @@
 {
   "name": "sdd-harness",
-  "version": "0.1.0",
-  "description": "Spec-driven development harness for Claude Code: plan → user story → strict TDD build → multi-agent code review with mutation proof.",
+  "version": "0.2.0",
+  "description": "Spec-driven development harness for Claude Code: codebase research → user story → two-architecture proposal → decision-by-decision plan → strict TDD build → multi-agent code review with mutation proof, unattended end to end; decisions batched into one sign-off session.",
   "author": { "name": "wrbyepct" },
   "license": "MIT",
   "keywords": ["spec-driven-development", "tdd", "code-review", "subagents", "hooks"]

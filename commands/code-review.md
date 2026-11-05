@@ -29,6 +29,13 @@ Two review targets carry EQUAL weight and each gets its own dedicated hunting pa
 ## MANDATORY pre-checks (do ALL of these before writing a single finding)
 
 0. **Read the feature spec FIRST** — if the diff belongs to a feature under `features/<name>/` (see `feature_dir`), read its `plan.md` (decisions `D<n>` + Risk/Gotcha table) and `test.md` (TC list + gap table) before anything else. The spec is the review baseline: every 拍板決策 and every Risk-table entry must have a corresponding lock (code or test). A spec promise with no test is a finding.
+   **Two scope checks that go with it (2026-11-04):**
+   - **Diff vs `plan.md` §12 Out of Scope** — read §12 as a "don't touch" list. A hunk that changes a file／function／behaviour §12 says
+     不做 is a finding「範圍外改動」(High if it changes behaviour, Medium if it only reshuffles code), unless plan §15 施工偏離 records it
+     with a 拍板. Reference: the planner wrote §12 so the implementer wouldn't drift; the reviewer is the only one who checks it afterwards.
+   - **Diff vs `research.md` contracts** — if the feature folder has `research.md` (contract tables P1／A1／S1…), every contract the diff
+     changes must be named by some decision in `plan.md`. A changed contract no decision names is a finding「意外破壞既有契約」(severity by
+     the blast radius of that contract; cite the contract id and the test that locks it, or note it has none).
 1. **Check package versions** — read `pyproject.toml` (or `requirements*.txt`) for the exact version of every library the diff touches. Never cite an API from a version this project doesn't use.
 2. **Fetch latest official docs** — WebFetch/WebSearch the authoritative docs for each library/framework in the changed code. Confirm the APIs/decorators/patterns used are current and idiomatic for those exact versions.
 3. **Check community best practices** — search recent (≤12 months) blogs, GitHub issues, changelogs for anything flagging the diff's patterns as deprecated / anti-pattern / superseded.

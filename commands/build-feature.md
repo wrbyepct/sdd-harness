@@ -15,7 +15,7 @@ queued next scope and confirm the target with the user before writing anything.
 
 **專案設定**：測試／lint／文件路徑等一律從專案 `CLAUDE.md` 的 `## Harness config` 段讀
 （`test_cmd`、`lint_cmd`、`isolated_db_env`、`isolated_db_build`、`test_workers_env`、`test_busy_check`、
-`openapi_check_cmd`、`api_doc_guide`、`feature_dir`、`memory_index`）。下文的 `<key>` 指的就是那一格的值。
+`openapi_check_cmd`、`api_doc_guide`、`conventions_doc`、`lessons_dir`、`feature_dir`、`memory_index`）。下文的 `<key>` 指的就是那一格的值。
 
 ---
 
@@ -46,8 +46,9 @@ one or two sentences, then implement it as specified unless the user changes it.
    一次一 TC；spec 之外主動獵 gap（四大死角＋邊界值＋狀態機窮舉）；
    每筆每值完整斷言；**比較型斷言的素材必須讓兩邊分歧**（素材碰巧讓兩邊同結果＝擲銅板，
    實作寫錯也會綠）；寫下去就綠的鎖必配 mutation 實測。
-4. **Swagger 格式與既有端點一致**（細則＝Step 5）：唯一權威＝`api_doc_guide`；
-   動筆前先 Read 同 router 鄰居端點對齊；
+4. **Swagger 格式與既有端點一致**（細則＝Step 5）：長相照 `conventions_doc` 第一部分（S1～S9）、
+   機制照 `api_doc_guide`（2026-11-05 起兩份分工；衝突以 `conventions_doc` 為準）；動筆前先 Read `conventions_doc`
+   指定的黃金樣本（例：某 router 的 `_CREATE_DESC` 常數與 `_RESPONSES` 常數）；
    每端點成功＋失敗 JSON 範例齊備；收尾必跑 OpenAPI exec 驗證（裸 exit code）。
 
 ---
@@ -67,7 +68,7 @@ Also read `features/BACKLOG.md`（若專案有）for cross-scope constraints (�
 
 **讀完三文件，派兩個子 agent 平行跑**（都只讀，背景派、等兩個都回）：
 - `lessons-recaller`：帶「要動的模組、改動類型、關鍵字、feature 目錄」，
-  它翻專案記憶（`memory_index`）／`lessons/`／`code_reviews/`／journal／相似 feature 的落地紀錄，回最多十條「這次會踩到的教訓」＋怎麼套用。
+  它翻專案記憶（`memory_index`）／`<lessons_dir>`／`code_reviews/`／journal／相似 feature 的落地紀錄，回最多十條「這次會踩到的教訓」＋怎麼套用。
   🔴 的是硬規則；每條教訓對到的鎖要進 test.md（spec-first）。
 - `spec-gap-hunter`（Step 1）：帶 feature 目錄、Inc 範圍、BACKLOG 相關項，回 gap 表。
 
@@ -112,7 +113,14 @@ touch a new area, actively hunt for what the docs missed.
 發現 gap
   → 判斷它是「規格漏寫」還是「新決策點」
       ├─ 規格漏寫（答案唯一、無取捨）→ 直接補，並同步回三文件
-      └─ 新決策點（有取捨）→ ⛔ 停下來問使用者，給 A/B/C + 推薦 + why
+      └─ 新決策點（有取捨）→ **不停**（2026-11-05 起作者拍板，兩種模式皆同）：
+         ① 當下就把這一題寫進 `<feature_dir>/<name>/decisions-pending.md`（骨架照 `decision-handoff.md` Step 3：
+            §2 總表一列＋§3 一題 user story 格式——角色／情境／動作／預期行為（現在的做法）／為什麼／另一個選項／翻案要動哪裡；
+            來源欄寫「實作期」；檔案不存在就建、§0 現況先留空給 /decision-handoff 填）
+         ② 選你評估最好的那個做下去；改到 user_story 已拍板的某一則也照改，該則加「⚠️ 暫定改寫（<日期>，見 decisions-pending T<n>）」、原句留在括號裡
+         ③ plan.md「落地紀錄」只加一行指到 decisions-pending 的題號，不重抄
+         ④ 拍板由 user 之後跑 `/decision-handoff` 開新 session 逐題做；你不問、不等
+         **仍然要停的只有不可逆的事**：刪欄位／刪資料的 migration、push、動到別人的在製品、刪分支／tag／DB
   → 先改 spec（test.md 加 TC、plan.md 加決策 D<n>/Risk、detailed-plan.md 加落點）
   → 才寫測試
   → 才寫實作
@@ -156,7 +164,7 @@ touch a new area, actively hunt for what the docs missed.
 
 - 實作階段**不停等確認**：解釋照舊、先紅後綠、
   one test at a time，但不要每條都問「可以嗎」。
-- **只有遇到新決策點才停**（有取捨、規格沒寫、答案不唯一）。
+- **新決策點也不停**（2026-11-05 起）：寫進 `decisions-pending.md`、選最好的做下去（Step 1 的處理順序）。只有不可逆的事才停。
 - 每個 Inc 結束跑一次全套，確認**基線 + 新增**全綠——**派 `test-runner`**（見 Step 6），不要自己跑全套讓幾百行輸出進主 context。單條 TC 的紅綠自己跑（輸出短）。
 
 ---
@@ -165,11 +173,10 @@ touch a new area, actively hunt for what the docs missed.
 
 實作要是「最優雅的那個版本」，判準如下（衝突時由上而下）：
 
-1. **先照專案既有慣例，再談通用 best practice** —— 找到 codebase 裡最相似的既有實作
-   （同模組的鄰居 > 其他模組的同類 > 通用範式），照它的形狀寫。新慣例要有理由。
-   **找鄰居派 `neighbor-finder`**：每個新的 endpoint／service 方法／
-   repo 查詢／schema 開寫前派一次，帶「要寫什麼、落點模組」，它回「照哪個檔哪個函式＋三行要點」。
-   同一個 Inc 裡同類的東西派一次就夠（例如三個 endpoint 同一個 router，鄰居一樣）。
+1. **先讀 `conventions_doc`，照它的黃金樣本寫**（2026-11-05 起；取代「翻隔壁」）——Swagger S1～S9、程式 C1～C7
+   每條都指了 `檔::常數或函式`，開寫前 Read 那一支，照形狀寫。舊 code 跟 `conventions_doc` 不一致時**以 `conventions_doc` 為準**，不照舊 code。
+   **`neighbor-finder` 只在 `conventions_doc` 沒涵蓋的東西才派**（例：某種特殊的 batch 流程、SSE、檔案上傳），帶「要寫什麼、落點模組、
+   `conventions_doc` 哪一條不夠用」，它回「照哪個檔哪個函式＋三行要點」。新慣例要有理由，且要回寫 `conventions_doc`（另開一題在 decisions-pending）。
 2. **分層不可越界**：router 只有路由與權限依賴、service 放商業邏輯、repo 只碰資料存取。
    Service 只 raise 專案自訂的 API exception 基底類別的子類（不可 raise `HTTPException`）。
 3. **DRY，但不要早熟抽象**：同樣的規則出現在兩個入口 → 抽共用函式（單一出處）；
@@ -204,7 +211,8 @@ touch a new area, actively hunt for what the docs missed.
 
 ## Step 5 — Swagger（動到任何端點契約就必做）
 
-**格式規範的唯一權威 = `api_doc_guide`——動筆前先讀它**，照現行的
+**先讀 `conventions_doc` 第一部分（S1～S9：節的順序、summary、變體名、常數命名、假資料），再讀
+`api_doc_guide`（機制：null 剝除、源頭核對、驗證腳本）**——動筆前兩份都讀，照現行的
 「OpenAPI 內建範例」格式寫，不要用舊的手寫 markdown 表格風格。
 
 要點（規範全文為準，這裡只是提醒常踩的）：
@@ -237,13 +245,16 @@ touch a new area, actively hunt for what the docs missed.
    要看 traceback 自己去讀 log 的那一段。
 2. 若動到 response 契約／enum 值／排序鍵 → 同樣派 `test-runner` **補跑 `--slow`**
    （slow 測試預設不跑，掃不到它們的期望值）。
-3. `lint_cmd`（例：ruff + mypy）全過。
+3. `lint_cmd`（例：ruff + mypy）全過。**全套測試（含 test-runner 派出去的）還在跑時不要跑**——ruff format 改寫檔案會讓
+   `inspect.getsource` 型的鎖讀到錯位行號假紅；同一輪 ruff format 改了檔就要再跑一次 mypy 才算數。
 4. 動到 Swagger → 照 Step 5 做完並通過 OpenAPI exec 驗證。
+4b. **使用者可見文字一次過目**：實作期自行定案的提醒／警告／錯誤訊息，收尾時整批列成一張表（位置／原句），
+   **寫成 `decisions-pending.md` 的一題**（來源「實作期·文案」，翻案要動哪裡＝每句的檔:行），不要中途逐句停下來等拍板。
 5. **文件同步確認**：三份 spec 是否已反映所有實作期的改動？
    plan.md 有沒有「落地紀錄」段可以補？BACKLOG.md（若有）的狀態要不要更新？
 6. **lessons**：這個 feature 踩到的雷、補的 spec gap 裡**有普遍性的**（下次在同類 code 會再踩），
-   每則一檔寫到 `lessons/<area>/<YYYY-MM-DD>-<slug>.md`（格式見 `${CLAUDE_PLUGIN_ROOT}/docs/LESSONS.md`，`source` 指 plan.md 落地紀錄或 journal），
-   更新 `lessons/INDEX.md`（`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/lessons_index.py`），跟最後一個 Inc 同一顆 commit。只屬於這個 feature 的不寫。
+   每則一檔寫到 `<lessons_dir>/<area>/<YYYY-MM-DD>-<slug>.md`（格式見 `${CLAUDE_PLUGIN_ROOT}/docs/LESSONS.md`，`source` 指 plan.md 落地紀錄或 journal），
+   更新 `<lessons_dir>/INDEX.md`（`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/lessons_index.py`），跟最後一個 Inc 同一顆 commit。只屬於這個 feature 的不寫。
 
 ### Commit 規則（硬規則）
 
@@ -256,6 +267,8 @@ touch a new area, actively hunt for what the docs missed.
   （修既有東西時用 `fix(<scope>): Address ...`）。
 - **細節全寫 body**：拍板決策、補了哪些 spec gap、mutation 驗證結果、
   測試筆數變化（基線 X → 完工 Y）、踩到的雷。
+- **commit 前 `git branch --show-current` 確認 HEAD 是這個 feature 的分支**——user 會在 session 之間自己切分支／pull，
+  不是預期的分支就停下來問，不要 commit 到別的分支上。
 - ⛔ **只 commit，不 push、不開 PR**。除非使用者明確說要推。
 - ⛔ 全部 Inc 做完後**停下來等使用者跑 `/code-review`**，不要自己接著做下一個 scope、
   也不要自己發起 review。回報「已完成、待 review」然後**停**。
@@ -293,7 +306,7 @@ touch a new area, actively hunt for what the docs missed.
 
 | 項目 | 互動模式 | 串接模式 |
 |---|---|---|
-| Step 1 新決策點（有取捨） | ⛔ 停下來問 A/B/C | **選推薦選項繼續做**，記成「暫定拍板」：plan.md「落地紀錄」加一列（決策、選了什麼、為什麼、另一個選項）；**即使會改到 user_story 已拍板的某一則也照改**，該則加「⚠️ 暫定改寫（<日期>）」標記，原句保留在括號裡。全部暫定拍板集中在收尾回報的「暫定拍板」節，由 user 事後翻案 |
+| Step 1 新決策點（有取捨） | 同右（2026-11-05 起兩模式相同） | **不停**：當下寫進 `decisions-pending.md` 一題、選最好的做下去（Step 1 處理順序 ①～④）；改到 user_story 已拍板的則加「⚠️ 暫定改寫」。收尾回報的「暫定拍板」節只列題號＋一句話，細節在檔裡 |
 | Step 6 跑測試 | `<test_cmd>` 主 DB，先用 `test_busy_check` 確認沒別的 pytest | **一律 `<isolated_db_env>=<isolated_db_build> <test_workers_env>=2 <test_cmd>`**（user 的 pytest 在飛就 `<test_workers_env>=1`），不碰主測試 DB；派 test-runner 時指令就給這條 |
 | Step 6 lint | `<lint_cmd>` | **只跑我改的檔**（`lint_cmd` 能指定檔案就指定，例：pre-commit 的 `--files <只有我改的檔>`）——會 `git add .` 的 lint 包裝指令會吃掉並行工作者的在製品，不准用 |
 | Step 6 收尾 | 🏁 停、等 user 跑 /code-review | **不停**。回報後直接把下面的「交接包」交給呼叫者 |
@@ -305,7 +318,7 @@ touch a new area, actively hunt for what the docs missed.
 範圍：<base>..HEAD 共 N 顆：<hash 一句話>…
 搬運型 commit：<hash 或「無」>（本次有整包搬運外部交付物才有）
 feature 目錄：<feature_dir>；user_story N 則；test.md TC N 條，[US] 未標 N 條（跑 story_lock_check.py）
-暫定拍板：<每條一行：決策｜選了什麼｜影響到 user_story 第幾則或「無」>（沒有就「無」）
+暫定拍板：<decisions-pending.md 的題號＋一句話，每題一行；影響到 user_story 第幾則>（沒有就「無」；細節在 <feature_dir>/<name>/decisions-pending.md）
 spec gap 已回寫：<幾條，各一句>
 在製品：<git status --porcelain 不是我的檔，或「無」>
 ```
@@ -317,12 +330,13 @@ spec gap 已回寫：<幾條，各一句>
 - ❌ 先寫實作再補測試
 - ❌ 一次寫多條測試再一起實作
 - ❌ 發現 gap 卻只在腦裡補掉、不回寫 spec
-- ❌ 遇到有取捨的新決策點自己決定不問（**串接模式例外**：選推薦、記暫定拍板）
+- ❌ 遇到有取捨的新決策點停下來問、或做了卻沒寫進 `decisions-pending.md`（2026-11-05 起：不停、即時寫、選最好的做；拍板在 `/decision-handoff`）
+- ❌ 不可逆的事（刪欄位／刪資料 migration、push、碰別人在製品、刪分支／tag／DB）自己做——這些才要停下來問
 - ❌ 為了讓測試變綠而放寬斷言
 - ❌ `git push` 或開 PR（除非使用者明確要求）
 - ❌ 把多個 Inc 堆成一顆 commit，或把一個 Inc 拆成 code/test 兩顆
 - ❌ 全做完後自己接著做下一個 scope 或自己發起 code review —— 回報完就停（**串接模式例外**：交接包交給 /build-and-review）
-- ❌ 用舊的手寫 markdown 表格風格寫 Swagger（現行格式看 `api_doc_guide`）
+- ❌ 用舊的手寫 markdown 表格風格寫 Swagger（長相看 `conventions_doc`、機制看 `api_doc_guide`）
 - ❌ 在 spec 沒寫、使用者沒要求的地方擴張 scope（想做就先問）
 - ❌ 用 `kill -9` 殺 pytest（會壞掉 event loop，後續全噴 async 錯誤；
   真的要救得重建測試容器）

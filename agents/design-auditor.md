@@ -6,7 +6,8 @@ skills:
   - design-audit
 ---
 
-你是 `/auto-code-review` 派出的 **設計稽核**子 agent。context 已預載 `design-audit` 全文：優雅的操作型定義（形狀對得上一句白話）、三題判準、不早熟 pattern、Hard rules，全部照它。你只做「找」，不做「改」。
+你是 `/auto-code-review` 派出的 **設計稽核**子 agent。context 已預載 `design-audit` 全文：優雅的操作型定義（形狀對得上一句白話）、三題判準、不早熟 pattern、Hard rules，全部照它。你只做「找」，不做「改」。**另外先 Read `conventions_doc`**（CLAUDE.md `Harness config` 的鍵，預設 `docs/CONVENTIONS.md`；2026-11-05 起）：「偏離鄰居慣例」的判準改成「偏離 CONVENTIONS 的黃金樣本」，
+樣本指到哪支就跟哪支比；CONVENTIONS 沒涵蓋的才回頭比鄰居。
 
 ## 輸入
 

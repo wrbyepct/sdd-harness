@@ -1,10 +1,40 @@
 ---
 description: 為一個 feature 產出 features/<name>/user_story.md——用白話逐則列出改動後的使用情境（角色／情境／動作／預期行為／為什麼這樣設計），對照的是實作結果不是計畫；先給一則範例等拍板，再寫完整份；寫完做覆蓋矩陣與禁用詞掃描。
-argument-hint: <feature 目錄名，例如 room-booking>  [--full 跳過範例直接寫完整份]
-allowed-tools: Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(sed:*), Bash(git log:*), Bash(git show:*), Bash(git diff:*), Read, Write, Edit
+argument-hint: <需求一句＝需求模式（新 feature，規劃前）> 或 <<feature_dir>/<name>＝複查模式（實作後蓋戳），例如 features/cancel-booking>  [--full 跳過範例直接寫完整份]
+allowed-tools: Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(sed:*), Bash(git log:*), Bash(git show:*), Bash(git diff:*), Bash(git branch:*), Read, Write, Edit, Agent
 ---
 
-為 `features/$ARGUMENTS/` 這個 feature 寫 `user_story.md`。
+為一個 feature 寫（或複查）`user_story.md`。feature 目錄的位置照專案 `CLAUDE.md` 的 `## Harness config` 段 `feature_dir`
+（預設 `features/<name>/`；下文的 `features/$ARGUMENTS/` 以它為準），產品原則文件照 `product_principles_doc`（預設 `docs/PRODUCT_PRINCIPLES.md`）。
+
+## 兩種模式（先判斷；權威順序：產品原則 > user story > plan 三文件）
+
+| 模式 | 什麼時候 | `$ARGUMENTS` | 做什麼 |
+|---|---|---|---|
+| **需求模式** | 新 feature，**規劃之前**（`/plan-feature` 還沒跑） | 需求一句（或 backlog 題目）；feature 目錄還不存在 | S0 派 `codebase-researcher` 寫 `research.md` → 以 research 為既有行為依據寫 user story（它是接下來 Propose／Plan 的**需求輸入**）→ 對照產品原則 → 拍板 → 印開工指令交給 `/plan-feature` |
+| **複查模式** | 實作與 review 做完 | `<feature_dir>/<name>`（只給 `<name>` 也可；已以 `features/` 開頭就不要再拼） | 照下面 Step 0 讀 plan／test／review／commit，逐則比對實作結果、改成實作結果、蓋「已實作逐則複查 ✅」戳 |
+
+分不出來就看 `<feature_dir>/<name>/plan.md` 在不在：不在＝需求模式。
+
+### 需求模式的步驟
+
+1. **S0 — 建 `<feature_dir>/<name>/`**（專案按版本分層、版本資料夾不只一個就問一句），同一則訊息背景派 `codebase-researcher`
+   （帶模組路徑、改動類型、關鍵字、需求原話）。回來後把報告**原樣**寫成
+   `research.md`。等它寫完才寫 story：情境裡提到的「現在系統會怎樣」一律引用 research 的契約編號（A3、S1…），不憑印象。
+   `/plan-feature` 之後只派 lessons-recaller、不再派 researcher。
+2. **寫 story**：格式、分組、用詞照下面 Step 1～3。此時沒有 plan、沒有 review，「為什麼這樣設計」寫**業務理由**；
+   設計面的取捨（架構、守門順序）之後由 `/plan-feature` 決定，決定若改到某一則，由 `/plan-feature` 回寫子號（`3b`）或標 🔄 並請使用者拍板——
+   story 是權威，不能被 plan 默默蓋掉。「附：刻意不做的事」從需求與 backlog 的否決項來。
+3. **一則範例 → 拍板 → 整份 → Step 4 三張表**（覆蓋矩陣此時只對 research 契約與需求句，沒有 TC／finding 可對）。
+4. **對照產品原則**（`<product_principles_doc>`，編號＝優先序）：每則對一遍，違反的列出來請使用者決定改 story 還是記例外。
+5. **拍板後**標頭加一行 `> 拍板：YYYY-MM-DD（規劃前）；實作後複查更新。` 然後**停在這段交接**（下一步要 `/clear`，落選架構才不會混進來）：
+   ```
+   user_story.md 已拍板、research.md 已就位。接下來請貼這兩行：
+   /clear
+   /plan-feature <feature_dir>/<name>
+   ```
+
+### 複查模式照以下 Step 0～4
 
 ## 這份文件是什麼、給誰看
 
@@ -20,7 +50,9 @@ allowed-tools: Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(sed:*), Bash(git log:
 
 依序讀完，缺一不可：
 
-1. `features/$ARGUMENTS/plan.md`（決策表 D<n> 逐條、Out of Scope、文字過目清單）
+0. 既有的 `features/$ARGUMENTS/user_story.md`（需求模式寫的那份，是底稿；則號不重排）與 `research.md`（對帳：沒指名卻變了的契約要寫進對應則）
+1. `features/$ARGUMENTS/plan.md`（決策表 D0／D<n> 逐條、Out of Scope、文字過目清單）
+   - 若有 `proposal.md`：**只讀「對照表」與「使用者裁決」兩段**，補「附：刻意不做的事」裡落選架構那一列的理由；不讀落選方案的五節。
 2. `features/$ARGUMENTS/test.md`（每條 TC 就是一個「預期行為」的候選）
 3. `features/$ARGUMENTS/detailed-plan.md`（若有）
 4. `code_reviews/` 底下這個 feature 的每一輪 review（**翻案與 finding 是「為什麼這樣設計」最好的素材**）
@@ -31,6 +63,8 @@ allowed-tools: Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(sed:*), Bash(git log:
 這張清單就是 Step 4 覆蓋矩陣的底稿。
 
 ## Step 1 — 每一則的格式（五欄，一欄都不能少）
+
+**一則只講一個動作、一個看得見的結果**；「預期行為」擠到多行就拆成多則，用「第 N 則」接續。
 
 ```
 ### <編號>. <一句話標題：說「誰做了什麼會怎樣」，不說「改了哪支程式」>
@@ -86,6 +120,11 @@ review 抓到的 High 幾乎都屬於這一類——它們是整份文件最有�
 2. **正確性**：每一則「預期行為」裡拿不準的句子，**回程式或測試實查**再寫（訊息原句、狀態碼對應的白話、
    誰收得到、誰被擋）。不確定的不要用篤定句；寧可寫「系統會留一筆紀錄」也不要寫錯「會跳提示」。
    特別留意：**計畫寫的與實作不同**的地方（review 翻案、開工追加拍板）——寫實作。
+   **複查模式蓋戳前**：逐句對系統實際文案與行為（訊息原句、誰看得到、擋還是放），不是只對「每則有沒有 TC」。
+2b. **跨則交叉**：逐則走只驗得到每一則自己成不成立；把會同時發生的則兩兩放在一起走一次（同一個人同一天、兩個守門同時命中），
+   矛盾的回報並請使用者拍板。
+2c. **「刻意不做的事」每一列先把使用者動線走完**：從那個人碰到這件事開始，一步一步走到結束，規格上自洽的取捨走一次就可能站不住；
+   走不通的不要列進附錄，改成一則待拍板情境。
 3. **禁用詞掃描**：`grep -n -i "API\|端點\|欄位\|參數\|SQL\|enum\|query\|commit\|TC-\|mutation\|payload\|repo\|service\|header\|uid\|migration\|trigger\|schema\|token\|Swagger" features/$ARGUMENTS/user_story.md`
    必須**零命中**（引文除外）。機械替換之後**整份重讀一遍**——替換會製造「會議室會議室」這種怪句。
 

@@ -6,7 +6,8 @@ skills:
   - code-review
 ---
 
-你是 `/auto-code-review` 派出的**審查**子 agent。你的 context 裡已經預載了 `code-review` 的全文，那是審查標準的單一權威，逐條照做。本文只講「無人值守」和「怎麼回報」這兩件 code-review 沒講的事。
+你是 `/auto-code-review` 派出的**審查**子 agent。你的 context 裡已經預載了 `code-review` 的全文，那是審查標準的單一權威，逐條照做。**另外先 Read `conventions_doc`**（CLAUDE.md `Harness config` 的鍵，預設 `docs/CONVENTIONS.md`；2026-11-05 起）：
+diff 裡違反 CONVENTIONS 任何一條（Swagger／API 文件慣例、程式慣例）就是一條 finding（嚴重度 Low，分類「慣例」，引條號）；舊 code 原本就不合的不算，只看這次 diff 新增或改到的行。本文只講「無人值守」和「怎麼回報」這兩件 code-review 沒講的事。
 
 ## 你拿到的輸入（派工訊息裡一定有；缺了就先 `git` 查，不要猜）
 
