@@ -113,6 +113,38 @@ agent 在實作中發現 spec 漏寫而自己做了決定，不能改上層文�
 | scripts | `story_lock_check.py`（user story ↔ 測試對帳）、`lessons_index.py`（教訓索引）、`add_history_banner.py`（舊 feature 文件加「歷史文件」橫幅）、`scan_sensitive.sh`（公開前掃敏感字） |
 | docs 範本 | `CONFIG.md`（設定表）、`LESSONS.md`（教訓格式）、`PRODUCT_PRINCIPLES.md`（產品原則）、`CONVENTIONS.md`（寫法慣例＋黃金樣本） |
 
+### commands（你打的指令）
+
+| command | 什麼時候打 | 做什麼 | 產出 | 會停下來問你的地方 |
+|---|---|---|---|---|
+| `/user-story <需求一句>` | 新 feature 的第一步 | 建 feature 資料夾、派 `codebase-researcher` 寫現況快照、以快照為據寫白話 user story、逐則對照產品原則 | `research.md`、`user_story.md` | 一則範例的格式用詞；整份拍板；違反原則的則 |
+| `/user-story <feature 路徑>` | 實作與拍板都結束後 | 複查模式：拿規劃前那份當底稿，對照 plan、test.md、每輪 review、commit 訊息逐則定稿、蓋戳 | 定稿的 `user_story.md` | 每則定稿 |
+| `/plan-feature <feature 路徑>` | user story 拍板後；每次 `/clear` 用同一句重入 | 第一次：兩個正交架構方案；第二次：S1–S6 逐決策、寫 plan.md；第三次：detailed-plan、test.md、派 `spec-gap-hunter`、`story_lock_check` 對帳 | `proposal.md`、`plan.md`、`detailed-plan.md`、`test.md` | 架構 A/B 裁決；每個 D 決策；spec gap 要不要補 |
+| `/build-feature <feature 路徑>` | 想自己盯實作時 | 嚴格 TDD，一次一條 TC 先紅後綠，每個 Inc 一顆 commit；新決策點不停、寫進 `decisions-pending.md` | commits、`decisions-pending.md` | 只在不可逆的事（刪資料 migration、push、碰別人在製品） |
+| `/build-and-review <feature 路徑>` | 平常用這個 | 串接模式跑 `/build-feature` → 自動生 review 開工指令 → 全新 context 子 agent 跑 `/auto-code-review` → 合併報告 → 自動跑 `/decision-handoff` | 上面全部＋拍板 session 開工指令 | 同上 |
+| `/auto-code-review` | 想單獨審一段 commit 範圍時 | 無人值守審查：派六個 review agent、修 finding 並 fixup 到引入它的那顆 commit、mutation 證明、寫教訓 | `code_reviews/<name>.md`、`decisions-pending.md` 追加、`lessons/` | 不停（`--ask` 才問） |
+| `/decision-handoff <feature 路徑>` | 收工時（`/build-and-review` 會自動跑） | 實查現況、蒐集所有待拍板題、補齊 context，印下一個 session 的逐題拍板開工指令 | `decisions-pending.md`、開工指令 | 不停 |
+| `/code-review` | 手動審目前的 diff | 單次審查，含範圍外改動與 research 契約對帳；也是 `reviewer` agent 用的標準 | findings 報告 | 拍板題 |
+| `/dry-audit`、`/design-audit` | 懷疑重複規則或設計繞路時 | 分別掃「同一條業務規則寫了兩份」與「行為對但寫法繞」，列清單讓你逐條拍 | 排好序的清單 | 每條拍了才動工 |
+
+### agents（command 派出去的子 agent）
+
+| agent | 誰派、什麼時候 | 做什麼 | 回什麼 | 工具 |
+|---|---|---|---|---|
+| `codebase-researcher` | `/user-story` 需求模式 | 照固定順序讀（API 文件 → 測試名稱 → code＋決策標籤 → 沿標籤進 feature 文件），只記現況、不提方案 | `research.md`：有編號的契約表、隱含規則、舊文件不一致處、沒有測試鎖的行為 | 只讀 |
+| `lessons-recaller` | `/plan-feature`、`/build-feature`、`/auto-code-review` 開工前 | 依模組與關鍵字翻 `lessons/`，再翻專案記憶的硬規則；太薄才翻舊 review | 最多十條「這次會踩到的教訓」＋怎麼套用 | 只讀 |
+| `spec-gap-hunter` | `/plan-feature` S8、`/build-feature` Step 1 | 對七項死角清單找「有承諾、沒有鎖」的地方（邊界、並行、順序、跨表） | gap 清單＋建議 TC | 只讀 |
+| `neighbor-finder` | `/build-feature` Step 3，慣例文件沒涵蓋時才派 | 找最相似的既有實作，回「照哪個檔哪個函式」；順便建議慣例該補哪條 | 樣本指標＋三行要點 | 只讀 |
+| `test-runner` | `/build-feature`、`/auto-code-review` 要跑測試時 | 用指定的那一行指令（隔離 DB）跑，幾百行輸出留在自己這邊 | passed／failed 計數、每條紅的 nodeid＋第一行錯誤、是否基線就紅 | Bash 只准測試指令 |
+| `reviewer` | `/auto-code-review` 每顆 commit | 以 `/code-review` 標準審，**要實跑探針重現**，違反慣例算 Low | `code_reviews/<name>.md`＋ findings 總表 | 讀＋寫報告目錄 |
+| `story-lock-auditor` | `/auto-code-review`，與 reviewer 平行 | 三方對帳：user story 每一則 ↔ test.md 的 `[US n]` ↔ 測試裡實際的 assert；標 ⚠️ 暫定改寫的則以暫定為準 | 每則「鎖住／部分／沒鎖＋缺什麼」 | 只讀 |
+| `finding-verifier` | `/auto-code-review`，每條 Critical／High | 對抗式驗證：「在現在的 code 這真的會發生嗎？給我重現輸入」，答不出就降級 | 維持／降級＋重現輸入 | 只讀 |
+| `dry-auditor` | `/auto-code-review` §4b | 掃這顆 commit 動到的業務規則，往整個 codebase 追第二份出處 | 零疑慮可施工清單＋待拍板清單 | 只讀 |
+| `design-auditor` | `/auto-code-review` §4b，dry-auditor 之後 | 看動到的函式形狀對不對得上業務規則，跟慣例文件的黃金樣本比 | 可施工清單＋待拍板清單 | 只讀 |
+| `mutation-prover` | `/auto-code-review` §5，每條修正與鎖 | 實際改壞原始碼、跑相關 TC、立刻還原；改完要 grep 確認突變真的在檔裡 | 每發「被抓到／存活」 | 唯一會暫時改 src 的 agent，主 agent 前後拍快照兜底 |
+
+分工原則：**找問題的 agent 不改 code，改 code 的主 agent 不審自己**；每個 agent 的 Bash 與寫檔範圍由 `hooks/agent_bash_guard.py` 依名字擋。
+
 ## 安裝
 
 ```text
