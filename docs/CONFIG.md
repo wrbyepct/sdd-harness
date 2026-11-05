@@ -22,7 +22,18 @@
 | `gotchas_docs` | `docs/SQLALCHEMY_GOTCHAS.md, docs/ALEMBIC_GOTCHAS.md` | 長篇踩雷文件（lessons-recaller 會依 area 打開） |
 | `protected_branches` | `main, master` | guard-rails hook 不准直接 commit／push 的分支（逗號分隔；沒設＝`main, master`；設 `-` 關掉） |
 | `memory_index` | `memories/MEMORY.md` | 專案長期記憶索引（沒有就留空） |
+| `product_principles_doc` | `docs/PRODUCT_PRINCIPLES.md` | 產品原則（範本見 `docs/PRODUCT_PRINCIPLES.md`）；`/user-story` 逐則對照、`/plan-feature` S0.5 當常駐第一 driver。沒有就留空，對照表那列寫「無文件」 |
+| `conventions_doc` | `docs/CONVENTIONS.md` | 寫法慣例＋黃金樣本（範本見 `docs/CONVENTIONS.md`）；`/build-feature` 動筆前先讀，`reviewer` 違反算 Low。沒有就留空，`neighbor-finder` 退回每次翻隔壁 |
+| `lessons_dir` | `lessons/` | 教訓庫目錄（格式見 `docs/LESSONS.md`）。**不要放在 `.claude/` 底下**：寫 `.claude/` 會觸發 Claude Code 內建的安全確認，無人值守會停 |
 ```
+
+## 寫檔規則（建議貼進 CLAUDE.md）
+
+無人值守的 `/build-and-review` 會被 Claude Code 內建的安全確認打斷的，實查只有兩種：寫 `.claude/` 底下的檔，
+以及用 Bash heredoc（`cat > f <<EOF`、`tee`、`echo >>`、`sed -i`）寫檔。所以：
+
+- 寫檔一律用 Write／Edit 工具；Bash 只拿來跑指令。
+- 教訓庫、decisions-pending、review 報告都放在 `.claude/` 外面。
 
 ## 裝完要做的兩件事
 
@@ -34,7 +45,7 @@
 
 | 目錄 | 誰寫 | 內容 |
 |---|---|---|
-| `features/<name>/` | `/plan-feature`、`/user-story`、`/build-feature` | plan.md、detailed-plan.md、test.md、user_story.md |
+| `features/<name>/` | `/user-story`、`/plan-feature`、`/build-feature`、`/decision-handoff` | `research.md`（現況快照）、`user_story.md`、`proposal.md`（兩個架構方案與裁決）、`plan.md`、`detailed-plan.md`、`test.md`、`decisions-pending.md`（實作與 review 期自己選的決策，等你拍板） |
 | `code_reviews/` | `reviewer` agent | 每一輪 review 一份報告 |
 | `lessons/` | `/auto-code-review` §7、`/build-feature` 收尾 | 一則一檔的教訓庫＋`INDEX.md`，由 `lessons-recaller` 召回 |
 | `logs/` | `test-runner` agent | 測試完整輸出 |

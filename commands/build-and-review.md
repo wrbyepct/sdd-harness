@@ -20,9 +20,9 @@ allowed-tools: Agent, Bash(git:*), Bash(docker:*), Bash(uvx:*), Bash(python3:*),
 - 審查規則全在 `/auto-code-review` 與它派的 agents
 - 開工指令格式見第 2 段的固定骨架；兩題（搬運型、拍板題）不問人，答案來自 build-feature 的交接包
 
-user 出手的地方只有兩處：打這支指令、看最後那份合併報告。中間**不問任何問題**（新決策點選推薦繼續，即使改到已拍板的 user_story 則也照改、最後一起報）。
+user 出手的地方只有兩處：打這支指令、把最後 `/decision-handoff` 印出的開工指令貼到新 session 逐題拍板（2026-11-05 起；合併報告只是順便看）。中間**不問任何問題**（新決策點選推薦繼續，即使改到已拍板的 user_story 則也照改、最後一起報）。
 
-## 三段
+## 四段
 
 ### 第 1 段 — 實作（主 agent，串接模式）
 
@@ -83,15 +83,18 @@ commit 末行 Co-Authored-By: <本機慣用的那一行>。
 ## /build-and-review <feature> 做完了
 <build-feature 的 🏁 一行：共 N 顆 commit、停本地未 push> ＋ <auto-code-review §7 的開頭一句：評分、修了幾條、autosquash 結果>
 
-## 請你拍板的題（合併，每題 user story 格式）
-### 來自實作期的暫定拍板（已照推薦做了，翻案就說）
-<交接包「暫定拍板」逐條：決策｜選了什麼｜為什麼｜另一個選項｜影響的 user_story 則>
-### 來自 review 的待拍板
-<§7 原樣>
+## 待拍板（細節在 decisions-pending.md，這裡只列總表）
+<decisions-pending.md §2 總表原樣：# ｜來源（實作期／review）｜一句話｜推薦>
 
 ## 細節
 <auto-code-review §7 其餘內容原樣：Findings 表、story-lock 蓋戳、mutation、落地、偏離預設的一段、已更新的文件>
 ```
+
+### 第 4 段 — 交接（主 agent；2026-11-05 起作者拍板）
+
+合併報告印完，**用 Skill 工具執行 `/decision-handoff <feature_dir>/<name>`**：它會補 `decisions-pending.md` 的 §0 現況與 §1 context、
+核對實作期（build-feature 即時寫的）與 review 期（auto-code-review §7 追加的）兩批題都在 §2／§3、更新記憶、印出下個 session 的拍板開工指令。
+user 出手的第二處就是貼那段開工指令；本 session 到此結束，不在這裡拍任何一題。
 
 ## 禁止事項
 

@@ -271,6 +271,10 @@ reviewer 已照固定骨架寫好 `code_reviews/<name>.md`（Pre-check 紀錄／
 - **預期不紅卻紅** → 對應 finding 的論據要訂正（§3 的引言區塊規矩）。
 - 子 agent 回報「工作區可能髒了」→ 立刻 `git diff` 親自確認還原，再往下。
 
+**派工前後各拍一次工作區快照**（2026-11-04 起；mutation-prover 是唯一本來就要改 src 的子 agent，`hooks/agent_bash_guard.py` 對它不擋寫 src，所以要靠快照兜底）：
+派之前 `git status --porcelain > <scratchpad>/mp-before.txt`，回來後再拍一次 `diff` 兩份；多出或少掉任何一行＝它沒還原乾淨，
+先 `git diff -- <那幾個檔>` 看是哪一發留在檔裡，手動反向還原後**整輪 mutation 結論作廢重派**（殘留的突變會汙染後面每一發）。
+
 報告追加 `## Mutation 實證` 一節，原樣貼表。
 
 ---
@@ -283,6 +287,7 @@ reviewer 已照固定骨架寫好 `code_reviews/<name>.md`（Pre-check 紀錄／
 ### 第一步：現在就落地成 fixup（不改寫任何歷史）
 
 ```bash
+git branch --show-current          # ⭐ 先確認還在派工包寫的那條分支（user 會在 session 之間切分支）；不是就停
 git add <只有我改的檔...>          # 逐一列出，不要 git add .
 git diff --cached --stat           # ⭐ 目視確認範圍，看到別人的檔就停下來
 git commit --fixup=<這條 finding 掛到的那顆> --no-verify
@@ -330,8 +335,8 @@ tree hash 對不上 → `git rebase --abort`（過程中）或 `git reset --hard
 1. **journal**（若專案有 journal）：`journal/YYYY-MM-DD/code-review-<主題>.md`——寫評分、findings 總表、
    fixup→autosquash 的前後對照與 tree hash 驗證。
 1b. **lessons**：這輪有普遍性的教訓
-   （不是「這個 feature 的 bug」，是「下次在這附近寫 code 會再踩的」）每則一檔寫到 `lessons/<area>/<日期>-<slug>.md`，
-   照 `${CLAUDE_PLUGIN_ROOT}/docs/LESSONS.md` 的 frontmatter 與三段格式，`source` 指回本輪 review md 的 finding 編號；更新 `lessons/INDEX.md`
+   （不是「這個 feature 的 bug」，是「下次在這附近寫 code 會再踩的」）每則一檔寫到 `<lessons_dir>/<area>/<日期>-<slug>.md`，
+   照 `${CLAUDE_PLUGIN_ROOT}/docs/LESSONS.md` 的 frontmatter 與三段格式，`source` 指回本輪 review md 的 finding 編號；更新 `<lessons_dir>/INDEX.md`
    （可用 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/lessons_index.py` 重建）。
    通常 1–3 則；沒有就寫「本輪無普遍性教訓」在 journal，不要湊。這些檔進同一顆 fixup（掛到範圍內最後一顆）。
 2. **清理**：隔離 DB（`<isolated_db_review>`）與備份 tag **預設留著、不問**；回報裡寫一句「要刪跟我說」
@@ -362,7 +367,9 @@ lint 全過，`<openapi_check_cmd>` 的 exit code 是 0。
 **和你的指示不一樣的一點**：<偏離協商的地方＋原因；沒有就整段拿掉>
 
 **請你拍板的題**（每題 user story 格式：角色／情境／動作／預期行為（現在的做法）／為什麼／
-另一個選項／我建議）
+另一個選項／我建議）——**同時追加進 `<feature_dir>/<name>/decisions-pending.md`**（2026-11-05 起：§2 總表一列＋§3 一題，來源欄
+「review」、含「翻案要動哪裡」；檔案已有實作期的題就接著編號，不重排、不動已填的「拍板結果」；沒有檔就照 `decision-handoff.md` Step 3 骨架建）。
+拍板由 user 之後跑 `/decision-handoff` 開新 session 做，這裡不等。
 
 **已更新的文件**：<review md 路徑、user_story 蓋戳結果（依 §3b 的表：幾則 🔒、哪則 ⚠️ 未補完）、test.md、
 其他受影響的文件（前端通知、backlog）、journal 路徑>

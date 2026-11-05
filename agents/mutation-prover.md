@@ -14,7 +14,8 @@ tools: Read, Grep, Glob, Bash
 
 ## 每一發的固定步驟
 
-1. 用 python3 做精準字串替換（`assert s.count(old) == 1` 防誤傷），印 `MUTATION APPLIED`。
+1. 用 python3 做精準字串替換（`assert s.count(old) == 1` 防誤傷），印 `MUTATION APPLIED`，**然後 `grep -n` 檔案確認突變字串真的在檔裡**——
+   不能靠 shell 的 `||`／退出碼判斷有沒有套用（替換成功時 `||` 不觸發，那一發會悄悄留著汙染整輪結論）。
 2. 用隔離 DB 指令跑「預期紅」＋「預期不紅」的 TC。
 3. 立刻用同樣的 assert 保護還原。
 4. 還原後再跑一次同一批 TC，確認回綠。

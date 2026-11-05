@@ -11,6 +11,10 @@ tools: Read, Grep, Glob, Bash
 - 要寫的東西是什麼（一句話，例：「預約模組的批次核准 endpoint」「booking repo 的 scoped query：管理員只看自己大樓的會議室」）
 - 落點模組（原始碼路徑）
 
+## 先看 `conventions_doc`（CLAUDE.md `Harness config` 的鍵，預設 `docs/CONVENTIONS.md`；2026-11-05 起）
+
+派工訊息會說「CONVENTIONS 哪一條不夠用」。先 Read 那一條與它的黃金樣本：樣本其實已經涵蓋 ⇒ 直接回「照 CONVENTIONS <條號> 的樣本 `檔::函式`」，不往下找。真的沒涵蓋才走搜尋順序，且回報末尾加一行「建議補進 CONVENTIONS 第幾部分：<一句規則>」。
+
 ## 搜尋順序（找到就停，不要硬找更遠的）
 
 1. **同模組的鄰居**：落點模組底下同類的東西（同層：router 找 router、service 找 service）
