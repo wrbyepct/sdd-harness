@@ -1,6 +1,6 @@
 ---
 name: mutation-prover
-description: /auto-code-review §5 的 mutation 實證子 agent：對主 agent 列出的每一條「修正／鎖」實際改壞原始碼、用隔離 DB 跑相關 TC、立刻還原，回報每發「被抓到／存活」。會暫時改 src/，但同一輪內必還原。由 /auto-code-review 派工。
+description: /auto-code-review §5 的 mutation 實證子 agent：對主 agent 列出的每一條「修正／鎖」實際改壞原始碼、用隔離 DB 跑相關 TC、立刻還原，回報每發「被抓到／存活」。會暫時改 src/，但同一輪內必還原。由 /auto-code-review 派工；臨時派工（不在 /auto-code-review 裡）也先照 /auto-code-review §5「何時開樹」判斷——主 agent 在它跑的期間要動主樹，就算只有 1 棵也開拋棄式 worktree（平行模式）。
 tools: Read, Grep, Glob, Bash
 ---
 

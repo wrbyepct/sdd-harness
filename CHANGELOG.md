@@ -10,6 +10,7 @@
 - **mutation-prover 平行模式**：靶 ≥ 6 發時主 agent 用 `scripts/mp_worktree.sh` 開 N 棵拋棄式 worktree（含主樹未 commit 的修正），同時派 N 個 prover，各自 `<test_tree_env>` 掛進拋棄式容器＋自己的 DB 基底名。新設定鍵 `test_tree_env`，做法見 `docs/CONFIG.md`「別棵樹跑測試」。實測兩路並行 13.4 s vs 單路 11.2 s。
 
 ### Changed
+- `/auto-code-review` §5 平行模式新增「何時開樹」：除了靶 ≥ 6 發，**主 agent 在 prover 跑的期間要動主樹時，靶再少也開 1 棵**（避免把改壞的碼夾進 commit）；開了樹只能往下一題走、不可回頭改正在驗的那題；不開樹時主 agent 要等 prover 標 completed 才動主樹。臨時派 prover（不在 /auto-code-review 裡）也照這節判斷，`agents/mutation-prover.md` description 同步註明。
 - `agents/mutation-prover.md`：每發只跑一次測試（整檔而非單條 nodeid；整檔與單條同價）、worker 數一律 0（xdist 每個 worker 重 import，單 TC 反而慢一倍）、不加 `-x`；還原後**不重跑**，改以 `grep`＋`git diff --quiet -- <檔>` 雙重確認；只在存活時補跑該模組整個測試資料夾；整輪結束跑一次聯集回綠。新增「成本事實」一節，說明規則的依據。
 - `/auto-code-review` §5：派工時加一行 worker 數 0；靶清單的 TC 欄可給測試檔；提醒別為了湊數開靶（靶數仍是主要變數）。
 
