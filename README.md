@@ -123,7 +123,7 @@ agent 在實作中發現 spec 漏寫而自己做了決定，不能改上層文�
 | `finding-verifier` | `/auto-code-review`，每條 Critical／High | 對抗式驗證：「在現在的 code 這真的會發生嗎？給我重現輸入」，答不出就降級 | 維持／降級＋重現輸入 | 只讀 |
 | `dry-auditor` | `/auto-code-review` §4b | 掃這顆 commit 動到的業務規則，往整個 codebase 追第二份出處 | 零疑慮可施工清單＋待拍板清單 | 只讀 |
 | `design-auditor` | `/auto-code-review` §4b，dry-auditor 之後 | 看動到的函式形狀對不對得上業務規則，跟慣例文件的黃金樣本比 | 可施工清單＋待拍板清單 | 只讀 |
-| `mutation-prover` | `/auto-code-review` §5，每條修正與鎖 | 實際改壞原始碼、跑相關 TC、立刻還原；改完要 grep 確認突變真的在檔裡 | 每發「被抓到／存活」 | 唯一會暫時改 src 的 agent，主 agent 前後拍快照兜底 |
+| `mutation-prover` | `/auto-code-review` §5，每條修正與鎖 | 實際改壞原始碼、跑相關測試檔一次、立刻還原；改完要 grep 確認突變真的在檔裡。每發只啟動一次 pytest（固定成本遠大於 TC 本身，實測 2.4×） | 每發「被抓到／存活」 | 唯一會暫時改 src 的 agent，主 agent 前後拍快照兜底 |
 
 分工原則：**找問題的 agent 不改 code，改 code 的主 agent 不審自己**；每個 agent 的 Bash 與寫檔範圍由 `hooks/agent_bash_guard.py` 依名字擋。
 
