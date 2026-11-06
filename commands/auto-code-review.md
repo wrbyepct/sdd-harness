@@ -273,7 +273,14 @@ reviewer 已照固定骨架寫好 `code_reviews/<name>.md`（Pre-check 紀錄／
 - **預期不紅卻紅** → 對應 finding 的論據要訂正（§3 的引言區塊規矩）。
 - 子 agent 回報「工作區可能髒了」→ 立刻 `git diff` 親自確認還原，再往下。
 
-**派工前後各拍一次工作區快照**（2026-11-04 起；mutation-prover 是唯一本來就要改 src 的子 agent，`hooks/agent_bash_guard.py` 對它不擋寫 src，所以要靠快照兜底）：
+**平行模式（CLAUDE.md `Harness config` 有填 `test_tree_env` 才啟用；靶 ≥ 6 發時用）**：pytest 啟動成本固定，所以多開幾個 prover 同時打是線性加速（實測兩路並行 13.4 s vs 單路 11.2 s）。做法：
+1. N = min(3, ⌈靶數 ÷ 6⌉)（每個 prover 一個拋棄式容器，看主機記憶體；`test_busy_check` 有人在跑就 N=1、不開樹）。
+2. 每份 `scripts/mp_worktree.sh add <n>` 開一棵拋棄式 worktree（內容＝主樹此刻工作區，**含 §4 未 commit 的修正與新 TC**；裸 `git worktree add HEAD` 帶不到，別自己開）。
+3. 靶清單平均切 N 份，**同一則訊息裡同時派 N 個 `mutation-prover`**，每個派工訊息＝派工包＋自己那份靶清單＋一行「你的樹：`<test_tree_env>=<mp_worktree.sh path n>`、`<isolated_db_env>=<isolated_db_review>_mp<n>`」。
+4. 全部回來後合併 N 張表成一張；`mp_worktree.sh remove <n>` 逐棵收掉；主樹 `git status --porcelain` 前後比對相同（平行模式主樹本來就不該被碰，這是保險）。
+存活要補鎖再打的那幾發，量少就不開樹、照單路模式在主樹打。`test_tree_env` 背後要什麼見 `docs/CONFIG.md`「別棵樹跑測試」。
+
+**派工前後各拍一次工作區快照**（單路模式；2026-11-04 起；mutation-prover 是唯一本來就要改 src 的子 agent，`hooks/agent_bash_guard.py` 對它不擋寫 src，所以要靠快照兜底）：
 派之前 `git status --porcelain > <scratchpad>/mp-before.txt`，回來後再拍一次 `diff` 兩份；多出或少掉任何一行＝它沒還原乾淨，
 先 `git diff -- <那幾個檔>` 看是哪一發留在檔裡，手動反向還原後**整輪 mutation 結論作廢重派**（殘留的突變會汙染後面每一發）。
 

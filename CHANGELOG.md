@@ -6,6 +6,9 @@
 
 `mutation-prover` 提速：實測每次 pytest 啟動的固定成本（app import）遠大於 TC 本身，規則改成「一發一啟動」。同一組 3 靶實測 143.7 s → 60.3 s（2.4×），紅的 TC 集合不變。
 
+### Added
+- **mutation-prover 平行模式**：靶 ≥ 6 發時主 agent 用 `scripts/mp_worktree.sh` 開 N 棵拋棄式 worktree（含主樹未 commit 的修正），同時派 N 個 prover，各自 `<test_tree_env>` 掛進拋棄式容器＋自己的 DB 基底名。新設定鍵 `test_tree_env`，做法見 `docs/CONFIG.md`「別棵樹跑測試」。實測兩路並行 13.4 s vs 單路 11.2 s。
+
 ### Changed
 - `agents/mutation-prover.md`：每發只跑一次測試（整檔而非單條 nodeid；整檔與單條同價）、worker 數一律 0（xdist 每個 worker 重 import，單 TC 反而慢一倍）、不加 `-x`；還原後**不重跑**，改以 `grep`＋`git diff --quiet -- <檔>` 雙重確認；只在存活時補跑該模組整個測試資料夾；整輪結束跑一次聯集回綠。新增「成本事實」一節，說明規則的依據。
 - `/auto-code-review` §5：派工時加一行 worker 數 0；靶清單的 TC 欄可給測試檔；提醒別為了湊數開靶（靶數仍是主要變數）。

@@ -15,6 +15,7 @@
 | `isolated_db_build` | `app_test_bf` | `/build-and-review` 實作段用的隔離 DB 名 |
 | `isolated_db_review` | `app_test_cr` | `/auto-code-review` 用的隔離 DB 名 |
 | `test_workers_env` | `PYTEST_WORKERS` | 控制平行 worker 數的環境變數（沒有就留空） |
+| `test_tree_env` | `TEST_TREE` | 把**別棵 worktree** 掛進拋棄式容器跑測試的環境變數（mutation-prover 平行模式用；沒有就留空，§5 平行模式不啟用；做法見下「別棵樹跑測試」） |
 | `test_busy_check` | `docker top api \| grep pytest` | 「現在有沒有別人在跑測試」的檢查指令（沒有就留空） |
 | `lint_cmd` | `uvx pre-commit run --all-files` | lint／型別檢查 |
 | `openapi_check_cmd` | `python -c "from app.main import app; app.openapi()"` | 產生 OpenAPI 的指令；端點契約有動就必跑，看**裸 exit code** |
@@ -49,3 +50,9 @@
 | `code_reviews/` | `reviewer` agent | 每一輪 review 一份報告 |
 | `lessons/` | `/auto-code-review` §7、`/build-feature` 收尾 | 一則一檔的教訓庫＋`INDEX.md`，由 `lessons-recaller` 召回 |
 | `logs/` | `test-runner` agent | 測試完整輸出 |
+
+## 別棵樹跑測試（`test_tree_env`）
+
+mutation-prover 平行模式要 N 個 prover 各在自己的 worktree 改壞原始碼、同時跑測試。測試若在容器裡跑，容器通常只 bind mount 主目錄的 `src/`、`tests/`，worktree 的改動它看不到。解法不是多開 N 套 stack，而是讓 `<test_cmd>` 認一個環境變數：有它就不 `exec` 進常駐容器，改用 `docker compose run --rm --no-deps -T --entrypoint "" -v <樹>/src:/app/src -v <樹>/tests:/app/tests … api pytest …` 開一個拋棄式容器；db／redis 共用，隔離靠 `<isolated_db_env>`（必填）。`--entrypoint ""` 是必要的：image 的 entrypoint 多半跑完 migration 就 exec 你的 server，把 pytest 指令整個吃掉。實測兩路並行 13.4 s vs 單路 11.2 s（固定啟動成本不互相拖慢）。
+
+`scripts/mp_worktree.sh add <n>` 開樹時會把主樹**未 commit 的改動與未追蹤的新檔**一起帶過去（§5 跑在 §6 commit 之前，裸 `git worktree add HEAD` 帶不到 §4 的修正）。
