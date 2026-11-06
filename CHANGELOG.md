@@ -2,6 +2,14 @@
 
 格式照 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)；版本號照 SemVer。
 
+## [0.2.1] — 2026-11-06
+
+`mutation-prover` 提速：實測每次 pytest 啟動的固定成本（app import）遠大於 TC 本身，規則改成「一發一啟動」。同一組 3 靶實測 143.7 s → 60.3 s（2.4×），紅的 TC 集合不變。
+
+### Changed
+- `agents/mutation-prover.md`：每發只跑一次測試（整檔而非單條 nodeid；整檔與單條同價）、worker 數一律 0（xdist 每個 worker 重 import，單 TC 反而慢一倍）、不加 `-x`；還原後**不重跑**，改以 `grep`＋`git diff --quiet -- <檔>` 雙重確認；只在存活時補跑該模組整個測試資料夾；整輪結束跑一次聯集回綠。新增「成本事實」一節，說明規則的依據。
+- `/auto-code-review` §5：派工時加一行 worker 數 0；靶清單的 TC 欄可給測試檔；提醒別為了湊數開靶（靶數仍是主要變數）。
+
 ## [0.2.0] — 2026-11-05
 
 流程改版：user story 前置、架構先比兩案、實作到審查全程不停。**還沒用真實 feature 跑過一輪**，規則都已寫進 command。
