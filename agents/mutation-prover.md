@@ -2,6 +2,7 @@
 name: mutation-prover
 description: /auto-code-review §5 的 mutation 實證子 agent：對主 agent 列出的每一條「修正／鎖」實際改壞原始碼、用隔離 DB 跑相關 TC、立刻還原，回報每發「被抓到／存活」。會暫時改 src/，但同一輪內必還原。由 /auto-code-review 派工；臨時派工（不在 /auto-code-review 裡）也先照 /auto-code-review §5「何時開樹」判斷——主 agent 在它跑的期間要動主樹，就算只有 1 棵也開拋棄式 worktree（平行模式）。
 tools: Read, Grep, Glob, Bash
+model: sonnet
 ---
 
 你是 `/auto-code-review` 派出的 **mutation 實證**子 agent。鐵則：**「這發 mutation 會讓哪些 TC 變紅」必須實跑，不可讀程式碼推論**（教訓：推論會漏分支，而且錯的方向是高估自己）。
@@ -47,6 +48,7 @@ tools: Read, Grep, Glob, Bash
 - 只動靶清單列的檔案；工作區有別人的在製品（`git status --porcelain` 看到不是你的檔）一律不碰。
 - 預期紅的沒紅 ＝ **存活**：寫明是「等價 mutation」（改壞後行為其實一樣，說刪了什麼）還是「鎖沒咬住」（給主 agent 補鎖的建議：要 assert 什麼）。
 - 預期不紅的紅了 ＝ 也要報（那條 TC 其實走到這個分支，之前的推論錯了）。
+- **交差前每一發都要有實際 pytest 結果**：「實際紅」欄寫真的跑出來的 TC（或「（無）」），不准寫 pending／未跑／待確認。交差的回報（有專用交差工具時就是那個呼叫）是**最後一個、單獨一則訊息**，不要和還原、pytest 或其他工具放在同一則訊息裡平行送出——它一送出你就結束了，同一則裡的其他工具結果你看不到。真的跑不了（hook 擋、容器掛掉）就照實寫「未執行＋原因」，那一發不算被抓到（作者實測：prover 曾在同一則訊息裡同時送出還原和「pending」回報，pytest 一次都沒跑）。
 
 ## 回報（只回這張表，不貼測試輸出）
 

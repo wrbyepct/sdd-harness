@@ -1,6 +1,6 @@
 ---
-description: Implement a planned feature under features/<name>/ with strict TDD (red → green, one TC at a time) against its plan.md / detailed-plan.md / test.md, actively hunting spec gaps and syncing any newly found edge case back into all three docs. Implementation must be the most elegant option — DRY, idiomatic, project-convention-first.
-allowed-tools: Agent, Bash(git status:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git add:*), Bash(git commit:*), Bash(ls:*), Bash(grep:*), Bash(ps:*), Bash(python3:*), Bash(docker compose:*), Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
+description: Implement a planned feature under features/<name>/ with strict TDD (red → green, one TC at a time) against its plan.md / detailed-plan.md / test.md, actively hunting spec gaps and syncing any newly found edge case back into all three docs. Implementation must be the most elegant option — DRY, idiomatic, project-convention-first. The main agent only coordinates: each Inc is handed to one implementer subagent; the main agent writes the brief, dispatches the full suite / mutation run, and commits.
+allowed-tools: Agent, Bash(git status:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git add:*), Bash(git commit:*), Bash(ls:*), Bash(grep:*), Bash(ps:*), Bash(python3:*), Bash(docker compose:*), Read, Write, Edit, Glob, Grep, WebFetch, WebSearch, SendMessage
 ---
 
 ## Context
@@ -27,6 +27,13 @@ spec missed, and write the most elegant implementation the codebase's convention
 
 You are **not** re-litigating design decisions. If you disagree with a 拍板決策（plan.md 的 `D<n>`）, say so in
 one or two sentences, then implement it as specified unless the user changes it.
+
+**你是協調者，code 由 `implementer` 子 agent 寫（兩種模式皆同）。**
+一個 Inc 派一個（見「派工流程」節）；Step 1 的處理順序、Step 2～5 的規則由 implementer 照做，你負責 Step 0、
+每個 Inc 的 brief、全套／mutation 驗證、commit、Step 6 收尾。理由：作者實測主 agent 自己做完 7 個 Inc，
+context 從 6 萬漲到 97 萬觸發兩次 auto-compact，累計 cache_read 佔全部 token 約 3/4；改成派 implementer 後，
+主 agent 峰值 24～27 萬、0 次 compact，每顆 commit 的 token 約為原本一半。
+**不要自己寫 production code 或測試、不要把 implementer 的整份 diff 讀進來**（要看就 `git diff --stat` 加指定行）。
 
 ---
 
@@ -74,6 +81,41 @@ Also read `features/BACKLOG.md`（若專案有）for cross-scope constraints (�
 
 Then state, in ≤10 lines: **本次要做的 Inc 範圍、TC 清單、預期改動的檔案、相關教訓幾條（列 🔴 的）、
 以及任何開工前要澄清的事**。Wait for the user's go-ahead only if something genuinely blocks; otherwise start.
+
+spec-gap-hunter 回來的 gap 表照 Step 1 處理（spec-first 補進三文件）後才開始派第一個 implementer，
+這樣 brief 抽到的就是補過的規格。lessons-recaller 的 🔴 教訓，跟該 Inc 有關的寫進該 Inc brief 的 ③。
+
+---
+
+## 派工流程：一個 Inc 一個 implementer（主 agent 做）
+
+Inc＝一顆 commit 的量，對應 detailed-plan 標題含 `（C<n>；plan …；US …）` 的那一段
+（例：`## 3. 取消預約守門（C2；plan D3、D4；US 5, 6）`）。依序（**一次只派一個，不平行**）：
+
+1. **抽 brief**：`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/inc_brief.py <feature_dir> C<n>` → `<feature_dir>/briefs/C<n>-brief.md`
+   （①規格＝detailed-plan 該段＋test.md 該 C 的 TC、②為什麼＝標題列的 plan 決策列＋US 原文、④規矩指路）。
+   印「⚠️ 抽不到」＝文件沒照 `（C<n>；plan …；US …）` 慣例（例如舊 feature），照 plan.md Implementation Order 手寫補進 ③。
+2. **寫 ③**（brief 裡唯一手寫段，只寫事實、不貼歷史）：前面 Inc report「新增／改掉的介面」裡跟這段有關的、
+   `decisions-pending.md` 裡跟這段有關的暫定決策（題號＋一句話）、lessons-recaller 跟這段有關的 🔴、你看出的模糊處與你的解讀。第一個 Inc 沒有前面的就寫「無」。
+   **寫完 ③ 再跑一次第 1 步的指令**：腳本會把 ③ 點名的 `test.md §<節>`（`§0`、`§10`、`§M`…；前綴是 plan／decisions-pending 等別份文件的不算）與 `D<n>.<m>` 小節原文抽進「③' 點名原文」，①已有的不重抄。
+   ③ 裡點名別份文件就寫清楚文件名（`plan §4`），要給原文的 test.md 節寫 `§` 編號（作者實測：沒抽原文時 implementer 每次都得自己翻 test.md 的共用 fixture 節與慣例節）。
+3. **派**：Agent 工具 `subagent_type: implementer`，前景等它回。派工訊息只有：一句這個 Inc 在 feature 裡的位置、brief 路徑（「先讀，它就是你的需求」）、
+   report 路徑 `<feature_dir>/briefs/C<n>-report.md`、模式、單檔測試指令（互動 `<test_cmd> <path>`；串接 `<isolated_db_env>=<isolated_db_build> <test_workers_env>=0 <test_cmd> <path>`）、
+   lint 指令（只對改的檔，例：`uvx pre-commit run --files <改的檔>`）。記下回傳的 agent id（修正輪續派用）。
+4. **照狀態處理**：
+   | 狀態 | 你做什麼 |
+   |---|---|
+   | `DONE` | 第 5 步 |
+   | `DONE_WITH_CONCERNS` | 讀 report 的新決策點／疑慮；影響後面 Inc 的寫進下一份 brief ③；然後第 5 步 |
+   | `NEEDS_CONTEXT` | 補進 brief ③（必要時自己翻文件或派 spec-gap-hunter 查那一區），續派同一個 implementer |
+   | `BLOCKED` | 不可逆的事：停下來問 user（兩種模式皆同） |
+5. **驗**：派 `test-runner` 跑全套（指令照 Step 6／串接模式表；動契約加 `--slow`）→ 全綠後派 `mutation-prover`，靶＝report 的 mutation 靶清單（不要和全套同時跑——它會改原始碼）。
+   **收回報先驗完整**：每一發都有「實際紅」與「結果」、結尾有「打 N 發…pytest 啟動 N 次」那行；缺表、或寫 pending／未跑的發 ⇒ 那幾發重派，不能當被抓到（作者實測：換成較小模型的 prover 曾經一次 pytest 都沒跑就回 "pending"）。
+6. **修正輪**：全套新紅、mutation 存活 → 用 SendMessage 續派**同一個** implementer（帶 test-runner 的新紅清單＋log 路徑、或存活靶），它更新同一份 report。
+   最多 3 輪；第 3 輪還不過 → 你自己讀 log 那段判斷，是規格問題就寫進 `decisions-pending.md`、程式問題就派新的 implementer（brief ③ 加一行指到舊 report）。
+   SendMessage 不能用時同樣改派新的 implementer。
+7. **commit**（照 Commit 規則；body 的 spec gap、mutation、踩到的雷從 report 取）。`git diff --stat` 核對改動檔與 report 相符；有 report 沒列的檔＝問 implementer，不要自己猜。
+8. 下一個 Inc 回第 1 步。report 的「使用者可見文字」「踩到的雷」累積起來，Step 6 的 4b 與 lessons 用。
 
 ---
 
@@ -138,6 +180,8 @@ touch a new area, actively hunt for what the docs missed.
 
 ## Step 2 — TDD loop (one TC at a time, 先紅後綠)
 
+> Step 2～5 由 implementer 照做；主 agent 不自己寫，但要知道這些規則來判斷 report。
+
 對 test.md 的每一條 TC，依序：
 
 1. **講解**（2–4 行）：這條在測什麼、為什麼需要它、它守的是哪條決策。
@@ -154,7 +198,7 @@ touch a new area, actively hunt for what the docs missed.
 > 故意把 production code 改壞（加上那條不該加的過濾、拔掉 tiebreaker、換掉權限依賴），
 > 確認對應 TC **真的變紅**，再改回來。
 
-**實跑交給 `mutation-prover`**（與 `/auto-code-review` 共用）：
+**實跑交給 `mutation-prover`**（與 `/auto-code-review` 共用；implementer 只把靶列在 report，由主 agent 在全套綠後派）：
 派工訊息帶靶清單（檔案｜原樣 → 改壞｜預期紅的 TC｜預期不紅的 TC）＋本模式的測試指令一整行
 （互動模式 `<test_cmd> <path>`；串接模式 `<isolated_db_env>=<isolated_db_build> … <test_cmd> <path>`）。
 它一發一還原、回一張被抓到／存活表。靶清單可以攢幾條 TC 一起派，不必每條都派一次。
@@ -165,7 +209,7 @@ touch a new area, actively hunt for what the docs missed.
 - 實作階段**不停等確認**：解釋照舊、先紅後綠、
   one test at a time，但不要每條都問「可以嗎」。
 - **新決策點也不停**（2026-11-05 起）：寫進 `decisions-pending.md`、選最好的做下去（Step 1 的處理順序）。只有不可逆的事才停。
-- 每個 Inc 結束跑一次全套，確認**基線 + 新增**全綠——**派 `test-runner`**（見 Step 6），不要自己跑全套讓幾百行輸出進主 context。單條 TC 的紅綠自己跑（輸出短）。
+- 每個 Inc 結束跑一次全套，確認**基線 + 新增**全綠——**主 agent 派 `test-runner`**（見 Step 6、派工流程第 5 步），不要讓幾百行輸出進主 context。單條 TC 的紅綠 implementer 自己跑。
 
 ---
 
@@ -248,11 +292,11 @@ touch a new area, actively hunt for what the docs missed.
 3. `lint_cmd`（例：ruff + mypy）全過。**全套測試（含 test-runner 派出去的）還在跑時不要跑**——ruff format 改寫檔案會讓
    `inspect.getsource` 型的鎖讀到錯位行號假紅；同一輪 ruff format 改了檔就要再跑一次 mypy 才算數。
 4. 動到 Swagger → 照 Step 5 做完並通過 OpenAPI exec 驗證。
-4b. **使用者可見文字一次過目**：實作期自行定案的提醒／警告／錯誤訊息，收尾時整批列成一張表（位置／原句），
+4b. **使用者可見文字一次過目**：實作期自行定案的提醒／警告／錯誤訊息（來源＝各 Inc report 的「使用者可見文字」），收尾時整批列成一張表（位置／原句），
    **寫成 `decisions-pending.md` 的一題**（來源「實作期·文案」，翻案要動哪裡＝每句的檔:行），不要中途逐句停下來等拍板。
 5. **文件同步確認**：三份 spec 是否已反映所有實作期的改動？
    plan.md 有沒有「落地紀錄」段可以補？BACKLOG.md（若有）的狀態要不要更新？
-6. **lessons**：這個 feature 踩到的雷、補的 spec gap 裡**有普遍性的**（下次在同類 code 會再踩），
+6. **lessons**（來源含各 Inc report 的「踩到的雷」）：這個 feature 踩到的雷、補的 spec gap 裡**有普遍性的**（下次在同類 code 會再踩），
    每則一檔寫到 `<lessons_dir>/<area>/<YYYY-MM-DD>-<slug>.md`（格式見 `${CLAUDE_PLUGIN_ROOT}/docs/LESSONS.md`，`source` 指 plan.md 落地紀錄或 journal），
    更新 `<lessons_dir>/INDEX.md`（`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/lessons_index.py`），跟最後一個 Inc 同一顆 commit。只屬於這個 feature 的不寫。
 
@@ -277,7 +321,7 @@ touch a new area, actively hunt for what the docs missed.
 
 ## 回報格式
 
-每個 TC 完成後給一行進度；整個 Inc 結束時給：
+每個 Inc 的 implementer 回來時給一行進度（狀態＋TC 數），驗完 commit 時給：
 
 ```
 ✅ <Inc 名稱>
@@ -311,6 +355,7 @@ touch a new area, actively hunt for what the docs missed.
 | Step 6 lint | `<lint_cmd>` | **只跑我改的檔**（`lint_cmd` 能指定檔案就指定，例：pre-commit 的 `--files <只有我改的檔>`）——會 `git add .` 的 lint 包裝指令會吃掉並行工作者的在製品，不准用 |
 | Step 6 收尾 | 🏁 停、等 user 跑 /code-review | **不停**。回報後直接把下面的「交接包」交給呼叫者 |
 | commit | 同 | 同（一 Inc 一顆、不 push） |
+| implementer 單檔測試指令 | `<test_cmd> <path>` | `<isolated_db_env>=<isolated_db_build> <test_workers_env>=0 <test_cmd> <path>` |
 
 ### 交接包（串接模式收尾必產，給 `/build-and-review` 生 review 開工指令用）
 
@@ -338,5 +383,7 @@ spec gap 已回寫：<幾條，各一句>
 - ❌ 全做完後自己接著做下一個 scope 或自己發起 code review —— 回報完就停（**串接模式例外**：交接包交給 /build-and-review）
 - ❌ 用舊的手寫 markdown 表格風格寫 Swagger（長相看 `conventions_doc`、機制看 `api_doc_guide`）
 - ❌ 在 spec 沒寫、使用者沒要求的地方擴張 scope（想做就先問）
+- ❌ 主 agent 自己寫 production code／測試，或把 implementer 的整份 diff、report 全文以外的過程讀進主 context（例外只有派工流程第 6 步「第 3 輪還不過」）
+- ❌ 同時派兩個 implementer，或 implementer 還沒回就派 test-runner／mutation-prover
 - ❌ 用 `kill -9` 殺 pytest（會壞掉 event loop，後續全噴 async 錯誤；
   真的要救得重建測試容器）
