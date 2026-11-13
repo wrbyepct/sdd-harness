@@ -268,6 +268,7 @@ reviewer 已照固定骨架寫好 `code_reviews/<name>.md`（Pre-check 紀錄／
 **成本**：每次 pytest 啟動的固定成本（app import）通常遠大於 TC 本身，xdist 多 worker 反而更慢（見 agent 檔「成本事實」）。靶數是牆鐘的主要變數，**別為了湊數開靶**：同一則 🔒 的多個 assert 合成一發打最弱的那個。
 
 主 agent 收到後：
+- **先驗回報完整**：每一發都有「實際紅」與「結果」、結尾有「打 N 發…pytest 啟動 N 次」那行；缺表或寫 pending／未跑的發 ⇒ 那幾發重派，不算被抓到（作者實測：換成較小模型的 prover 曾經沒跑 pytest 就回 "pending"）。
 - **存活且原因是「鎖沒咬住」** → 回 §4 補 assert，再派一次只打那幾發。
 - **存活且是等價 mutation** → 報告寫明刪了什麼，不算洞。
 - **預期不紅卻紅** → 對應 finding 的論據要訂正（§3 的引言區塊規矩）。

@@ -2,6 +2,23 @@
 
 格式照 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)；版本號照 SemVer。
 
+## [0.3.0] — 2026-11-11
+
+`/build-feature` 的主 agent 改成只協調：每個 Inc（＝一顆 commit）派一個 `implementer` 子 agent 寫 code。起因是一場真實 build：主 agent 自己做完 7 個 Inc，context 從 6 萬漲到 97 萬、auto-compact 兩次，cache_read 佔全部 token 約 3/4。改版後跑了四場真實 feature：主 agent 峰值 24～27 萬、0 次 compact，每顆 commit 的 token 約為原本一半。
+
+### Added
+- `agents/implementer.md`：一次只做一個 Inc。讀 brief → spec-first → 嚴格 TDD 一次一 TC → 只 lint 自己改的檔 → 寫完整 report 檔，只回短回報（`DONE`／`DONE_WITH_CONCERNS`／`NEEDS_CONTEXT`／`BLOCKED`）。不跑全套、不 commit、不派子 agent。**同一條 TC 連 5 次紅就停手**，寫清楚試了什麼，交給主 agent 判斷（防單次派工內無上限空轉）。
+- `scripts/inc_brief.py`＋測試：從 detailed-plan 標題的 `（C<n>；plan …；US …）` 機械抽出該 Inc 的規格、TC、plan 決策列、user story 原文；主 agent 只手寫 ③「前面留下的」。重跑會保留 ③，並把 ③ 點名的 `test.md §<節>` 與 `D<n>.<m>` 小節原文抽成 ③'（實測：沒有 ③' 時 implementer 每次都得自己翻 test.md 的共用節）。
+- `docs/CONFIG.md`「worktree＋symlink：要設 `additionalDirectories`」：副樹用 symlink 共用主樹目錄時，auto mode 會把經 symlink 的寫入當越界而停下。
+
+### Changed
+- `/build-feature` 新增「派工流程」節（抽 brief → 寫 ③ → 再跑一次腳本 → 派 implementer → 照四狀態處理 → test-runner 全套 → mutation-prover → 修正輪最多 3 輪續派同一個 → commit）；Step 2～5 改由 implementer 照做；回報格式與「絕對不要」同步改。`allowed-tools` 加 `SendMessage`。
+- `/build-and-review` 第 1 段註明 build 由 implementer 寫；第 3 段派 review 的理由改寫。`allowed-tools` 加 `SendMessage`。
+- 子 agent 分模型（判準：做錯會不會被下一步自動抓到）：`test-runner` 加 `model: haiku`、`mutation-prover` 加 `model: sonnet`；判斷類 agent 不設、跟主 agent 同模型。
+- `agents/mutation-prover.md`：每一發都要有實際 pytest 結果，不准回 pending；交差回報要單獨一則訊息、不和還原或 pytest 同一則送出（實測：曾在同一則訊息送出還原與「pending」，pytest 一次都沒跑）。`/build-feature` 派工流程第 5 步與 `/auto-code-review` §5 都加「收回報先驗完整，缺的那幾發重派」。
+- `/decision-handoff`：檔裡照舊寫完整 user story，**口頭講要短**（情境兩句 → A／B 各一行 → 建議一句 → 一行問句；不放表格、不講 code 路徑），使用者問才展開。
+- README：command／agent 責任表加 `implementer`、模型分工；使用示範、目前的限制、未來優化表新增「build 主 agent 只協調」「子 agent 分模型」兩列。
+
 ## [0.2.1] — 2026-11-06
 
 `mutation-prover` 提速：實測每次 pytest 啟動的固定成本（app import）遠大於 TC 本身，規則改成「一發一啟動」。同一組 3 靶實測 143.7 s → 60.3 s（2.4×），紅的 TC 集合不變。

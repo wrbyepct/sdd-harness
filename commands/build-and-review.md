@@ -1,7 +1,7 @@
 ---
 description: /build-feature → /auto-code-review 一條做到底、中間不停：主 agent 以串接模式實作（新決策點選推薦記暫定拍板、隔離 DB、lint 只跑改過的檔），用它的交接包自動生 review 開工指令（不問人），再派一個全新 context 的子 agent 跑 /auto-code-review（它裡面再派六個），主 agent 只收 §7 報告，最後把暫定拍板與 review 拍板題合成一份給 user。做完不 push。
 argument-hint: <feature 名（<feature_dir> 底下的目錄名）> [--inc <Inc 名>]
-allowed-tools: Agent, Bash(git:*), Bash(docker:*), Bash(uvx:*), Bash(python3:*), Bash(ls:*), Bash(grep:*), Bash(cat:*), Bash(wc:*), Read, Edit, Write, WebFetch, WebSearch, Skill
+allowed-tools: Agent, Bash(git:*), Bash(docker:*), Bash(uvx:*), Bash(python3:*), Bash(ls:*), Bash(grep:*), Bash(cat:*), Bash(wc:*), Read, Edit, Write, WebFetch, WebSearch, Skill, SendMessage
 ---
 
 ## Context
@@ -29,6 +29,7 @@ user 出手的地方只有兩處：打這支指令、把最後 `/decision-handof
 用 Skill 工具執行 `/build-feature $ARGUMENTS --chain`。它會：
 - 新決策點選推薦、記「暫定拍板」（plan.md 落地紀錄＋user_story 該則加 ⚠️ 標記）
 - 測試走 `<isolated_db_env>=<isolated_db_build> <test_cmd>`，lint 只跑改過的檔
+- 每個 Inc 派一個 `implementer` 子 agent 寫 code（build-feature「派工流程」節），主 agent 只協調；brief／report 在 `<feature_dir>/briefs/`
 - 一 Inc 一顆 commit、不 push、收尾不停，最後產「交接包」
 
 主 agent 把交接包**原樣保存**（這是第 2 段的唯一輸入）。build-feature 回報的其他內容不要再複述。
@@ -67,7 +68,7 @@ commit 末行 Co-Authored-By: <本機慣用的那一行>。
 
 ### 第 3 段 — 審查（全新 context 的子 agent）
 
-主 context 此時裝滿了整個 TDD 過程，不適合審自己的 code。用 **Agent 工具**派一個子 agent（一般型，不指定 agent），prompt ＝ 第 2 段的開工指令全文 ＋ 這一句：
+主 context 此時裝著整個 build 的協調紀錄（brief、report、驗證結果），不適合審自己的 code。用 **Agent 工具**派一個子 agent（一般型，不指定 agent），prompt ＝ 第 2 段的開工指令全文 ＋ 這一句：
 
 ```
 請用 Skill 工具執行上面第一行的 /auto-code-review（它會自己派 reviewer／story-lock-auditor／finding-verifier／dry-auditor／design-auditor／mutation-prover）。做完把 §7 的收尾回報**原樣**回給我，不要摘要、不要多加解讀。

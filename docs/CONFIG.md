@@ -56,3 +56,27 @@
 mutation-prover 平行模式要 N 個 prover 各在自己的 worktree 改壞原始碼、同時跑測試。測試若在容器裡跑，容器通常只 bind mount 主目錄的 `src/`、`tests/`，worktree 的改動它看不到。解法不是多開 N 套 stack，而是讓 `<test_cmd>` 認一個環境變數：有它就不 `exec` 進常駐容器，改用 `docker compose run --rm --no-deps -T --entrypoint "" -v <樹>/src:/app/src -v <樹>/tests:/app/tests … api pytest …` 開一個拋棄式容器；db／redis 共用，隔離靠 `<isolated_db_env>`（必填）。`--entrypoint ""` 是必要的：image 的 entrypoint 多半跑完 migration 就 exec 你的 server，把 pytest 指令整個吃掉。實測兩路並行 13.4 s vs 單路 11.2 s（固定啟動成本不互相拖慢）。
 
 `scripts/mp_worktree.sh add <n>` 開樹時會把主樹**未 commit 的改動與未追蹤的新檔**一起帶過去（§5 跑在 §6 commit 之前，裸 `git worktree add HEAD` 帶不到 §4 的修正）。
+
+## worktree＋symlink：要設 `additionalDirectories`
+
+如果你在同一個 repo 開第二棵 git worktree 並行做另一個 feature，又把不進 git 的目錄（例：`features/`、`lessons/`、`code_reviews/`、`.claude/`）用 symlink 從副樹指回主樹，讓兩棵樹共用同一份：
+Claude Code 的 auto mode 會把「經 symlink 寫到工作目錄外」當成越界、跳出權限詢問（同一個檔案用主樹的絕對路徑寫反而放行），無人值守的 `/build-and-review` 會停在那裡。
+
+解法：在主樹的 `.claude/settings.local.json` 把這些主樹目錄列進 `permissions.additionalDirectories`（若 `.claude/` 本身也是共用的 symlink，副樹會吃到同一份）：
+
+```json
+{
+  "permissions": {
+    "additionalDirectories": [
+      "/path/to/main-tree/features",
+      "/path/to/main-tree/lessons",
+      "/path/to/main-tree/code_reviews"
+    ]
+  }
+}
+```
+
+注意：
+- 副樹每多連一個 symlink 目錄，清單就要補一行。
+- `settings.local.json` 不進 git，換電腦要重設（路徑也會不同）。
+- 兩棵樹會同時寫共用檔（例：backlog、`lessons/INDEX.md`）時，改這類檔一律用 Edit 改局部、不要整檔 Write，否則後寫的會蓋掉先寫的。

@@ -17,7 +17,8 @@ allowed-tools: Bash(git:*), Bash(docker:*), Bash(python3:*), Bash(ls:*), Bash(gr
 一輪施工／review 做完、還剩一串「要 user 拍板」的題目時，把它們**落成檔**，下個 session 才能乾淨地接著一題一題拍。
 三個產出：① `decisions-pending.md` ② 記憶更新 ③ 開工指令（印在最後，給 user 貼到新 session）。
 
-規則來源不重抄：拍板題怎麼問是固定的——**一次一題、user story 格式（角色／情境／動作／預期行為／為什麼＋另一個選項＋建議）、不彈選項框**；
+規則來源不重抄：拍板題怎麼問是固定的——**一次一題、不彈選項框**；
+**檔裡寫完整 user story（角色／情境／動作／預期行為／為什麼＋另一個選項＋建議），口頭講要短**（作者實測：完整欄位全念出來，使用者回「太多資訊了，簡單講」）：情境兩句（人名＋發生什麼）→ A／B 各一行 → 「建議 X，一句理由」→ 附帶題兩句 → 一行問句；不放表格、不講 code 路徑／測試名，user 問才講。
 施工／fixup／autosquash 的規矩在 `build-feature.md`、`auto-code-review.md`。
 
 ## Step 1 — 定位與現況（全部用指令實查，不憑對話記憶）
@@ -55,7 +56,7 @@ allowed-tools: Bash(git:*), Bash(docker:*), Bash(python3:*), Bash(ls:*), Bash(gr
 ```markdown
 # <feature> 待拍板清單＋施工現況（<日期> <哪個指令>收尾）
 
-> 下個 session 照本檔一題一題拍（user story 格式、一次一題、不彈選項框）。
+> 下個 session 照本檔一題一題拍（一次一題、口頭簡短講、不彈選項框；本檔的完整欄位是備查，user 問才展開）。
 > 每題拍完在「拍板結果」欄填 ✅ 維持／🔄 翻案（＋一句理由），翻案的照「翻案要動哪裡」施工。
 > 全部拍完 ⇒ <下一個里程碑，例如 push／PR／合回 <base_branch>>。
 
@@ -85,7 +86,7 @@ allowed-tools: Bash(git:*), Bash(docker:*), Bash(python3:*), Bash(ls:*), Bash(gr
 
 ```
 <feature> 拍板 session。開工前置（先做、逐項回報）：① git checkout <分支>，確認 HEAD=<短 hash>、tree=<短 tree>、工作區乾淨、git log <base>..HEAD 共 <N> 顆且零 fixup!；<base> 若前進了先報告、不要自己 rebase；② 跑 <test_busy_check> 確認沒有測試在跑。
-然後讀 <feature 目錄>/decisions-pending.md（先 §0／§1 現況與 context，細節要查再看 <列出 plan 落地紀錄節號、test.md 統計節、code_reviews/<name>.md 等實際存在的檔>），照 §2 總表順序 <題號以 → 串起>，一次只講一題、用 user story 格式（角色／情境／動作／預期行為／為什麼＋另一個選項＋你的建議），講完就停、等我回覆再下一題，不要彈選項框。<有附帶題就寫「X 的附帶題（…）跟 X 一起問。」>
+然後讀 <feature 目錄>/decisions-pending.md（先 §0／§1 現況與 context，細節要查再看 <列出 plan 落地紀錄節號、test.md 統計節、code_reviews/<name>.md 等實際存在的檔>），照 §2 總表順序 <題號以 → 串起>，一次只講一題、簡短講（情境兩句：人名＋發生什麼 → A／B 各一行 → 建議＋一句理由 → 一行問句；不放表格、不講 code 路徑與測試名，我問才展開），講完就停、等我回覆再下一題，不要彈選項框。<有附帶題就寫「X 的附帶題（…）跟 X 一起問。」>
 每題拍完當下把結果填進 decisions-pending.md 的「拍板結果」欄（✅ 維持／🔄 翻案＋一句理由）。全部拍完先列翻案清單給我看，我說動工才照「翻案要動哪裡」施工（fixup! 到對應 commit → autosquash → 全套，測試一律 <isolated_db_env>=<isolated_db_review> <test_workers_env>=1）。不 push、不開 PR、不刪備份 tag，等我指示。
 ```
 
@@ -96,4 +97,4 @@ allowed-tools: Bash(git:*), Bash(docker:*), Bash(python3:*), Bash(ls:*), Bash(gr
 - ⛔ 不改任何程式、不 commit、不 push、不刪 tag／分支／隔離庫。
 - ⛔ 不在檔案或開工指令裡寫來源沒有的數字（測試數、mutation 數、評分）。
 - ⛔ 不替 user 拍：推薦欄寫建議，「拍板結果」欄一律留空（或保留既有已填的）。
-- ⛔ 開工指令不重抄規則全文——只放這一輪的事實（hash、題號順序、檔名）和「一次一題、user story 格式」那一句。
+- ⛔ 開工指令不重抄規則全文——只放這一輪的事實（hash、題號順序、檔名）和「一次一題、簡短講」那一句。
