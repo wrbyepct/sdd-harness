@@ -39,7 +39,7 @@ allowed-tools: Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(sed:*), Bash(find:*),
    story 是權威，不能被 plan 默默蓋掉。
    **「附：刻意不做的事」**：ticket 的「不做」只是討論起點——research 回來後跟使用者把每一條走過（Step 4 的 2c）才定案寫進附錄。
 3. **一則範例 → 拍板 → 整份 → Step 4 三張表**（覆蓋矩陣此時只對 research 契約與 ticket 的預期／例子，沒有 TC／finding 可對）。
-4. **對照產品原則**（`<product_principles_doc>`，編號＝優先序）：每則對一遍，違反的列出來請使用者決定改 story 還是記例外。
+4. **對照產品原則**（`<product_principles_doc>`，編號＝優先序）：每則對一遍，違反的列出來請使用者決定改 story 還是記例外。這份文件不存在（或設定留空）就跳過這一步，並在交接訊息裡講一句「沒有產品原則文件，未對照」。
 5. **拍板後**標頭加兩行，然後**停在這段交接**（下一步要 `/clear`，落選架構才不會混進來）：
    ```
    > ticket：ticket.md｜級別：<small|medium>

@@ -222,7 +222,7 @@ touch a new area, actively hunt for what the docs missed.
 
 實作要是「最優雅的那個版本」，判準如下（衝突時由上而下）：
 
-1. **先讀 `conventions_doc`，照它的黃金樣本寫**（2026-11-05 起；取代「翻隔壁」）——Swagger S1～S9、程式 C1～C7
+1. **先讀 `conventions_doc`，照它的黃金樣本寫**（這份文件不存在或設定留空 ⇒ 跳過，直接派 `neighbor-finder` 找最近的鄰居照寫）（2026-11-05 起；取代「翻隔壁」）——Swagger S1～S9、程式 C1～C7
    每條都指了 `檔::常數或函式`，開寫前 Read 那一支，照形狀寫。舊 code 跟 `conventions_doc` 不一致時**以 `conventions_doc` 為準**，不照舊 code。
    **`neighbor-finder` 只在 `conventions_doc` 沒涵蓋的東西才派**（例：某種特殊的 batch 流程、SSE、檔案上傳），帶「要寫什麼、落點模組、
    `conventions_doc` 哪一條不夠用」，它回「照哪個檔哪個函式＋三行要點」。新慣例要有理由，且要回寫 `conventions_doc`（另開一題在 decisions-pending）。
