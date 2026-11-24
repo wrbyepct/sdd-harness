@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """從 feature 三文件機械抽出一個 Inc 的 implementer brief（/build-feature「派工流程」第 1、2 步）。
 
-用法：python3 ${CLAUDE_PLUGIN_ROOT}/scripts/inc_brief.py <feature_dir> C<n>
-輸出：<feature_dir>/briefs/C<n>-brief.md（已存在則覆寫 ①②④，保留 ③ 主 agent 手寫段），印出路徑。
+用法：python3 ${CLAUDE_PLUGIN_ROOT}/scripts/inc_brief.py <feature_dir>/<N>-<name> C<n>
+輸出：<feature_dir>/<N>-<name>/briefs/C<n>-brief.md（已存在則覆寫 ①②④，保留 ③ 主 agent 手寫段），印出路徑。
 
 抽法（依現行文件慣例）：
 - detailed-plan.md：標題含「（C<n>；plan …；US …）」的 `## ` 段整段

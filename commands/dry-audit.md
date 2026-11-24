@@ -68,7 +68,7 @@ implement — one item at a time, TDD, with a lock that makes the single source 
 - 對每一條規則往**整個產品程式碼**找第二份出處（不是只看 diff 檔）。diff 守門的重點就是
   「這次新寫的東西，是不是別處早就有一份」。
 
-兩種模式都要先讀 `<feature_dir>` 底下的 `plan.md` 決策表（D<n>，若存在）——spec 裡明列的「刻意分開」
+兩種模式都要先讀 `<feature_dir>/<N>-<name>/plan.md` 決策表（D<n>，若存在）——spec 裡明列的「刻意分開」
 是 B／C 類的直接證據，不要拿去當 finding。
 
 ---

@@ -28,7 +28,7 @@ Two review targets carry EQUAL weight and each gets its own dedicated hunting pa
 
 ## MANDATORY pre-checks (do ALL of these before writing a single finding)
 
-0. **Read the feature spec FIRST** — if the diff belongs to a feature under `features/<name>/` (see `feature_dir`), read its `plan.md` (decisions `D<n>` + Risk/Gotcha table) and `test.md` (TC list + gap table) before anything else. The spec is the review baseline: every 拍板決策 and every Risk-table entry must have a corresponding lock (code or test). A spec promise with no test is a finding.
+0. **Read the feature spec FIRST** — if the diff belongs to a feature under `<feature_dir>/<N>-<name>/`, read its `plan.md` (decisions `D<n>` + Risk/Gotcha table) and `test.md` (TC list + gap table) before anything else. The spec is the review baseline: every 拍板決策 and every Risk-table entry must have a corresponding lock (code or test). A spec promise with no test is a finding.
    **Two scope checks that go with it (2026-11-04):**
    - **Diff vs `plan.md` §12 Out of Scope** — read §12 as a "don't touch" list. A hunk that changes a file／function／behaviour §12 says
      不做 is a finding「範圍外改動」(High if it changes behaviour, Medium if it only reshuffles code), unless plan §15 施工偏離 records it

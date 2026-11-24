@@ -2,6 +2,25 @@
 
 格式照 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)；版本號照 SemVer。
 
+## [0.4.0] — 2026-11-24
+
+所有工作改從 `/ticket` 進：一項工作一個資料夾、BACKLOG 改成可機械檢查的單表、流程指令改收 `#N`。**還沒用真實工作跑過一輪**，規則都已寫進 command。
+
+### Added
+- `commands/ticket.md`：立題。一句需求 → `<feature_dir>/<N>-<name>/ticket.md`（現況／預期／例子／預算與級別／接在哪／原文件／不做／完成條件／待拍＋最後一行開工指令）＋BACKLOG 一列。ticket 只寫要什麼與從哪接，**不寫解法**（先寫會限制更好的解法）。級別 tiny／small／medium／large；large 拆成一張母題（目標／子題與順序／共同決定 E 條）＋數張互相連結的子題。
+- `commands/backlog-align.md`：用 git 實查每一項的實際狀態，補漏改的（表與 ticket 檔頭兩處）、結案的移表、列出場外殘留（使用者點頭才刪）。
+- `scripts/backlog_check.py`＋6 條測試：表↔ticket 一一對應、無重號、兩處狀態一致、母題子題互連、相對連結不斷、表格無空行；印下一個可用編號。資料夾多包幾層也認。
+- `docs/CONFIG.md`「資料夾分層與 BACKLOG」一節。
+
+### Changed
+- **`feature_dir` 的意思變了（breaking）**：從「單一 feature 的資料夾樣式 `features/<name>/`」改成「feature 根目錄 `features/`」；每項工作是 `<feature_dir>/<N>-<name>/`。舊的 `features/<name>/` 資料夾仍可用路徑餵給各指令，但不會出現在 BACKLOG。
+- `/user-story`：收 `#N`，不再接一句需求、不再自己建資料夾。模式看資料夾內容（只有 `ticket.md`＝需求模式；有 `plan.md`＝複查模式）。需求模式先過兩道門（母題不實作；上游入口還沒回填或母題 E 條待拍就停）、把狀態改「進行中」；複查模式新增 Step 5 收尾：回填下游 ticket 的「接在哪」、標【跨張】的拍定題寫回母題成 E 條、狀態改「完成」移表。
+- `/plan-feature`：收 `#N`、進場多讀 `ticket.md`（與母題的共同決定）。small 兩處分岔：S0.5 條件式（沒有兩個真的不一樣的做法就 D0 一行帶過、不寫 `proposal.md`）、detailed-plan 最多 3 個 Inc（超過就停、建議升 medium）。
+- `/build-feature`：Step 0 讀 `ticket.md`（「不做」是範圍的籬笆）；有母題的 ticket，新決策點多判一句「另一張一定要跟著一樣嗎」，是就標【跨張】；BACKLOG 狀態不在這裡改。
+- `/build-and-review`、`/decision-handoff`：收 `#N`；handoff 的開工指令最後提醒跑 `/user-story #N` 複查。
+- 其餘 command／agent／script 的路徑寫法統一成 `<feature_dir>/<N>-<name>/`。
+- README：流程圖、關卡表、責任表、使用示範都改成從 `/ticket` 開始。
+
 ## [0.3.0] — 2026-11-11
 
 `/build-feature` 的主 agent 改成只協調：每個 Inc（＝一顆 commit）派一個 `implementer` 子 agent 寫 code。起因是一場真實 build：主 agent 自己做完 7 個 Inc，context 從 6 萬漲到 97 萬、auto-compact 兩次，cache_read 佔全部 token 約 3/4。改版後跑了四場真實 feature：主 agent 峰值 24～27 萬、0 次 compact，每顆 commit 的 token 約為原本一半。

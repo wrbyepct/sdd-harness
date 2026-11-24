@@ -17,10 +17,10 @@ tools: Read, Grep, Glob
 2. **`tests/<模組>/`**：Grep `def test_` 列出相關測試名稱，挑沾邊的讀 docstring（第一行可能是 `[US n]`）。測試每次都跑過，**測試描述的行為＝保證的現況**。
 3. **code**：只讀第 1、2 步指到的函式（路由 → service → 驗證／guard），沿 import 讀 schema。記下 `決策 <feature 路徑> D<n>`（或 `決策 <feature> §x.y`）標籤（`conventions_doc` C6 的新格式）。
    **舊 code 的標籤樣式不一，一併 grep**：`(D<n>)`／`（D<n>）`、`<feature> D<n>`（例 `cancel-booking D2-c`）、`D<n>-<m>`、`plan D<n>`、`決策 <字母或數字>`、`user YYYY-MM-DD`；
-   對不出是哪個 feature 的（例如裸 `（D56）`）就用 feature 名或關鍵字 grep `<feature_dir>/*/plan.md` 找，找不到填「標籤無法溯源」。
+   對不出是哪個 feature 的（例如裸 `（D56）`）就用 feature 名或關鍵字 grep `<feature_dir>` 底下各資料夾的 `plan.md` 找，找不到填「標籤無法溯源」。
 4. **`features/`**：**只沿第 3 步的決策標籤進去**，讀那一條決策的 why。另外可以打開模組對應的舊 plan.md 做一件事：找出它寫的和 code 對不上的地方（填「舊文件與 code 不一致」）。不准拿 `features/` 當行為來源。
 
-## 回報（只回這份；主 agent 會原樣寫進 `<feature_dir>/<name>/research.md`，所以直接照檔案格式寫）
+## 回報（只回這份；主 agent 會原樣寫進 `<feature_dir>/<N>-<name>/research.md`，所以直接照檔案格式寫）
 
 ```markdown
 # Research：「<需求一句>」——既有行為契約快照
@@ -46,7 +46,7 @@ tools: Read, Grep, Glob
 
 ## N+1. 舊文件與 code 不一致
 
-- <`<feature_dir>/<name>` §x 寫 A；code（<位置>）實際是 B。或「無」>
+- <`<feature_dir>/<N>-<name>` §x 寫 A；code（<位置>）實際是 B。或「無」>
 
 ## N+2. 沒有測試鎖的行為（改了不會有測試紅）
 

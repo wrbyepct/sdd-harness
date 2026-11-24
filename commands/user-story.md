@@ -1,40 +1,58 @@
 ---
-description: 為一個 feature 產出 features/<name>/user_story.md——用白話逐則列出改動後的使用情境（角色／情境／動作／預期行為／為什麼這樣設計），對照的是實作結果不是計畫；先給一則範例等拍板，再寫完整份；寫完做覆蓋矩陣與禁用詞掃描。
-argument-hint: <需求一句＝需求模式（新 feature，規劃前）> 或 <<feature_dir>/<name>＝複查模式（實作後蓋戳），例如 features/cancel-booking>  [--full 跳過範例直接寫完整份]
-allowed-tools: Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(sed:*), Bash(git log:*), Bash(git show:*), Bash(git diff:*), Bash(git branch:*), Read, Write, Edit, Agent
+description: 為一個已立題的工作（/ticket 建好的資料夾）產出 user_story.md——用白話逐則列出改動後的使用情境（角色／情境／動作／預期行為／為什麼這樣設計），對照的是實作結果不是計畫；先給一則範例等拍板，再寫完整份；寫完做覆蓋矩陣與禁用詞掃描。需求模式（規劃前）與複查模式（實作後蓋戳）由資料夾裡有什麼檔決定。
+argument-hint: "#<N>（或 feature 目錄，例如 features/5-cancel-booking）  [--full 跳過範例直接寫完整份]"
+allowed-tools: Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(sed:*), Bash(find:*), Bash(python3:*), Bash(git log:*), Bash(git show:*), Bash(git diff:*), Bash(git branch:*), Read, Write, Edit, Agent
 ---
 
-為一個 feature 寫（或複查）`user_story.md`。feature 目錄的位置照專案 `CLAUDE.md` 的 `## Harness config` 段 `feature_dir`
-（預設 `features/<name>/`；下文的 `features/$ARGUMENTS/` 以它為準），產品原則文件照 `product_principles_doc`（預設 `docs/PRODUCT_PRINCIPLES.md`）。
+為一個已立題的工作寫（或複查）`user_story.md`。專案設定照專案 `CLAUDE.md` 的 `## Harness config` 段：`feature_dir`
+（feature 根目錄，預設 `features/`）、`base_branch`，產品原則文件照 `product_principles_doc`（預設 `docs/PRODUCT_PRINCIPLES.md`）。
 
-## 兩種模式（先判斷；權威順序：產品原則 > user story > plan 三文件）
+## 先找到 feature 目錄（所有工作都從 `/ticket` 進）
 
-| 模式 | 什麼時候 | `$ARGUMENTS` | 做什麼 |
-|---|---|---|---|
-| **需求模式** | 新 feature，**規劃之前**（`/plan-feature` 還沒跑） | 需求一句（或 backlog 題目）；feature 目錄還不存在 | S0 派 `codebase-researcher` 寫 `research.md` → 以 research 為既有行為依據寫 user story（它是接下來 Propose／Plan 的**需求輸入**）→ 對照產品原則 → 拍板 → 印開工指令交給 `/plan-feature` |
-| **複查模式** | 實作與 review 做完 | `<feature_dir>/<name>`（只給 `<name>` 也可；已以 `features/` 開頭就不要再拼） | 照下面 Step 0 讀 plan／test／review／commit，逐則比對實作結果、改成實作結果、蓋「已實作逐則複查 ✅」戳 |
+- `$ARGUMENTS` 是 `#N` → `find <feature_dir> -maxdepth 4 -type d -name 'N-*' -not -path '*/archive/*'`；是路徑就直接用。下文 `<feature 目錄>` 都指它。
+- 找不到資料夾、或 `$ARGUMENTS` 是一句需求 → **停**：「這件事還沒立題，請先跑 `/ticket <需求>`」。這支指令不自己建資料夾。
+- 沒有 `ticket.md` 的舊資料夾（導入 `/ticket` 之前建的）只接受複查模式，照舊做、跳過所有跟 ticket／BACKLOG 有關的步驟。
 
-分不出來就看 `<feature_dir>/<name>/plan.md` 在不在：不在＝需求模式。
+## 兩種模式（看資料夾裡有什麼檔；權威順序：產品原則 > user story > plan 三文件）
+
+| 資料夾裡 | 判定 | 做什麼 |
+|---|---|---|
+| 只有 `ticket.md` | **需求模式** | 讀 ticket → S0 派 `codebase-researcher` 寫 `research.md` → 以 research 為既有行為依據寫 user story（它是接下來 Propose／Plan 的**需求輸入**）→ 對照產品原則 → 拍板 → 印開工指令交給 `/plan-feature` |
+| 有拍板的 `user_story.md`、沒有 `plan.md` | 還沒規劃 | 不做事，回報「下一步是 `/plan-feature #N`」，停 |
+| 有 `plan.md` | **複查模式** | 照下面 Step 0 讀 plan／test／review／commit，逐則比對實作結果、改成實作結果、蓋「已實作逐則複查 ✅」戳，再做 Step 5 收尾 |
+
+**不分級別**：small 與 medium 跑同一套（分岔點在 `/plan-feature`）。tiny 不走這支指令（照 ticket 的開工指令直接修）。
 
 ### 需求模式的步驟
 
-1. **S0 — 建 `<feature_dir>/<name>/`**（專案按版本分層、版本資料夾不只一個就問一句），同一則訊息背景派 `codebase-researcher`
-   （帶模組路徑、改動類型、關鍵字、需求原話）。回來後把報告**原樣**寫成
+0. **讀 `ticket.md`，先過兩道門**：
+   - 級別 `large`（母題）→ 停：母題不實作，請對它的子題跑。
+   - 「接在哪」還有 `<合併後填>`，或檔頭「遵守母題 E<n>」裡有哪一條在母題還是【待拍】→ 停，告訴使用者是哪一張上游還沒蓋戳／哪一條 E 還沒拍。
+   過了就：把 `<feature_dir>/BACKLOG.md` 該列狀態與 `ticket.md` 檔頭狀態**兩處**改成「進行中」。
+1. **S0 — 同一則訊息背景派 `codebase-researcher`**
+   （帶 ticket「接在哪」列的入口與模組路徑、改動類型、關鍵字、ticket 的「現況／預期／例子」原文）。回來後把報告**原樣**寫成
    `research.md`。等它寫完才寫 story：情境裡提到的「現在系統會怎樣」一律引用 research 的契約編號（A3、S1…），不憑印象。
    `/plan-feature` 之後只派 lessons-recaller、不再派 researcher。
-2. **寫 story**：格式、分組、用詞照下面 Step 1～3。此時沒有 plan、沒有 review，「為什麼這樣設計」寫**業務理由**；
+2. **寫 story**：格式、分組、用詞照下面 Step 1～3。需求來源＝ticket 的「預期」與「例子」（每個例子至少對到一則）；有母題的，檔頭列的 E 條是既定前提，照著寫、不重問。
+   此時沒有 plan、沒有 review，「為什麼這樣設計」寫**業務理由**；
    設計面的取捨（架構、守門順序）之後由 `/plan-feature` 決定，決定若改到某一則，由 `/plan-feature` 回寫子號（`3b`）或標 🔄 並請使用者拍板——
-   story 是權威，不能被 plan 默默蓋掉。「附：刻意不做的事」從需求與 backlog 的否決項來。
-3. **一則範例 → 拍板 → 整份 → Step 4 三張表**（覆蓋矩陣此時只對 research 契約與需求句，沒有 TC／finding 可對）。
+   story 是權威，不能被 plan 默默蓋掉。
+   **「附：刻意不做的事」**：ticket 的「不做」只是討論起點——research 回來後跟使用者把每一條走過（Step 4 的 2c）才定案寫進附錄。
+3. **一則範例 → 拍板 → 整份 → Step 4 三張表**（覆蓋矩陣此時只對 research 契約與 ticket 的預期／例子，沒有 TC／finding 可對）。
 4. **對照產品原則**（`<product_principles_doc>`，編號＝優先序）：每則對一遍，違反的列出來請使用者決定改 story 還是記例外。
-5. **拍板後**標頭加一行 `> 拍板：YYYY-MM-DD（規劃前）；實作後複查更新。` 然後**停在這段交接**（下一步要 `/clear`，落選架構才不會混進來）：
+5. **拍板後**標頭加兩行，然後**停在這段交接**（下一步要 `/clear`，落選架構才不會混進來）：
+   ```
+   > ticket：ticket.md｜級別：<small|medium>
+   > 拍板：YYYY-MM-DD（規劃前）；實作後複查更新。
+   ```
+   （`/plan-feature` 靠第一行知道級別；沒有這行一律當 medium。）
    ```
    user_story.md 已拍板、research.md 已就位。接下來請貼這兩行：
    /clear
-   /plan-feature <feature_dir>/<name>
+   /plan-feature #<N>
    ```
 
-### 複查模式照以下 Step 0～4
+### 複查模式照以下 Step 0～5
 
 ## 這份文件是什麼、給誰看
 
@@ -50,11 +68,11 @@ allowed-tools: Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(sed:*), Bash(git log:
 
 依序讀完，缺一不可：
 
-0. 既有的 `features/$ARGUMENTS/user_story.md`（需求模式寫的那份，是底稿；則號不重排）與 `research.md`（對帳：沒指名卻變了的契約要寫進對應則）
-1. `features/$ARGUMENTS/plan.md`（決策表 D0／D<n> 逐條、Out of Scope、文字過目清單）
+0. `<feature 目錄>/ticket.md`（當初要什麼、例子、不做）、既有的 `<feature 目錄>/user_story.md`（需求模式寫的那份，是底稿；則號不重排）與 `research.md`（對帳：沒指名卻變了的契約要寫進對應則）
+1. `<feature 目錄>/plan.md`（決策表 D0／D<n> 逐條、Out of Scope、文字過目清單）
    - 若有 `proposal.md`：**只讀「對照表」與「使用者裁決」兩段**，補「附：刻意不做的事」裡落選架構那一列的理由；不讀落選方案的五節。
-2. `features/$ARGUMENTS/test.md`（每條 TC 就是一個「預期行為」的候選）
-3. `features/$ARGUMENTS/detailed-plan.md`（若有）
+2. `<feature 目錄>/test.md`（每條 TC 就是一個「預期行為」的候選）
+3. `<feature 目錄>/detailed-plan.md`（若有）
 4. `code_reviews/` 底下這個 feature 的每一輪 review（**翻案與 finding 是「為什麼這樣設計」最好的素材**）
 5. `journal/` 底下這個 feature 的紀錄（開工實查抓到的規格缺口、拍板變更）（若專案有 journal）
 6. 這個 feature 的 commit 訊息（`git log <base_branch>..<feature 分支>`，`base_branch` 見 CLAUDE.md 的 `Harness config`）——commit body 常寫著計畫沒有的決定
@@ -125,8 +143,20 @@ review 抓到的 High 幾乎都屬於這一類——它們是整份文件最有�
    矛盾的回報並請使用者拍板。
 2c. **「刻意不做的事」每一列先把使用者動線走完**：從那個人碰到這件事開始，一步一步走到結束，規格上自洽的取捨走一次就可能站不住；
    走不通的不要列進附錄，改成一則待拍板情境。
-3. **禁用詞掃描**：`grep -n -i "API\|端點\|欄位\|參數\|SQL\|enum\|query\|commit\|TC-\|mutation\|payload\|repo\|service\|header\|uid\|migration\|trigger\|schema\|token\|Swagger" features/$ARGUMENTS/user_story.md`
+3. **禁用詞掃描**：`grep -n -i "API\|端點\|欄位\|參數\|SQL\|enum\|query\|commit\|TC-\|mutation\|payload\|repo\|service\|header\|uid\|migration\|trigger\|schema\|token\|Swagger" <feature 目錄>/user_story.md`
    必須**零命中**（引文除外）。機械替換之後**整份重讀一遍**——替換會製造「會議室會議室」這種怪句。
+
+## Step 5 — 複查模式收尾（蓋戳之後；有 `ticket.md` 的才做）
+
+1. **回填下游的「接在哪」**：`grep -rl "<合併後填>" <feature_dir> --include=ticket.md`，挑出檔頭「依賴」連到這張的 ticket，
+   把它「接在哪」裡屬於這張的 `<合併後填>` 換成一行「`<本 feature 目錄>`＋入口函式／端點（檔:函式）」。下游 ticket 只准改這一處。
+2. **跨張決定回母題**（這張有母題才做）：`decisions-pending.md` 裡標「跨張」且已拍定的題，寫進母題 `ticket.md`「共同決定」成新的 E 條（決定、為什麼、【已拍 日期】）；
+   同母題還沒開工的子題檔頭補「遵守 E<n>」；已做完而做法不一致的列出來，建議使用者開一張 tiny；正在別的 session 施工的，印出一段可以貼給那個 session 的話。
+3. **改狀態**：`ticket.md` 檔頭狀態改「完成」；`<feature_dir>/BACKLOG.md` 該列狀態改「完成」、整列剪下照編號插進已結案表，備註欄寫 PR 號或「未併（<分支>）」＋日期。
+   還沒進 `origin/<base_branch>` 的，在 ticket「完成條件」段下面補一行 `> ⚠️ 還沒進 <base_branch>（<分支>＝<hash>）`。
+   母題底下的子題全數完成 ⇒ 母題一起改「完成」移表。
+4. `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/backlog_check.py <feature_dir>/BACKLOG.md` 全部 ✅。
+5. 回報：蓋戳結果＋回填了哪幾張下游＋新增了哪幾條 E＋「這張已結案；push／PR 由你決定」。
 
 ## 流程：先一則範例，拍板後再寫完整份
 
@@ -135,7 +165,7 @@ review 抓到的 High 幾乎都屬於這一類——它們是整份文件最有�
 1. 挑**最能展現這個 feature 存在理由**的那一則（不是最簡單的那一則），照 Step 1 的五欄寫出來，
    附上你打算怎麼分組、大約幾則、每組講什麼——請使用者確認**格式、分組、名詞**。
    這一步的價值是把「名詞用哪個」「為什麼這樣設計要多長」這類事在寫二十則之前談定。
-2. 拍板後寫完整份到 `features/$ARGUMENTS/user_story.md`，做完 Step 4 三張表，
+2. 拍板後寫完整份到 `<feature 目錄>/user_story.md`，做完 Step 4 三張表，
    回報時**列出核對抓到並修掉的東西**（漏掉的行為、改掉的術語、對照實作後改口的句子），
    以及你**刻意壓到附錄**的 Out of Scope。
 
