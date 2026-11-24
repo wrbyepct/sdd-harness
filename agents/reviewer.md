@@ -11,7 +11,7 @@ diff 裡違反 CONVENTIONS 任何一條（Swagger／API 文件慣例、程式慣
 
 ## 你拿到的輸入（派工訊息裡一定有；缺了就先 `git` 查，不要猜）
 
-- 目標 commit（hash）與 feature 目錄（CLAUDE.md `Harness config` 的 `feature_dir`，例 `features/<name>/`）
+- 目標 commit（hash）與 feature 目錄（CLAUDE.md `Harness config` 的 `feature_dir` 底下的 `<N>-<name>/`，例 `features/5-cancel-booking/`）
 - 報告要寫到的路徑 `code_reviews/<commit_message_in_english_snake_case>.md`
 - 隔離 DB 測試指令（若需要實跑測試佐證 finding）
 
@@ -29,7 +29,7 @@ diff 裡違反 CONVENTIONS 任何一條（Swagger／API 文件慣例、程式慣
 
 ```markdown
 # Code Review — <commit 標題>
-- Commit / 審查日 / 範圍（檔數、增刪行）/ Spec 對照（features/<name>/*.md）
+- Commit / 審查日 / 範圍（檔數、增刪行）/ Spec 對照（<feature_dir>/<N>-<name>/*.md）
 
 ## Pre-check 執行紀錄     ← 表格：四項各自的結果，版本號寫實測值
 ## 做得好的地方

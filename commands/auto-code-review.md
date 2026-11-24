@@ -141,7 +141,7 @@ git branch -r --contains HEAD      # 範圍推出去了沒
 搬運型 commit（只審搬運完整性）：<hash 或「無」>
 歸屬規則：finding 掛到引入那段 code 的那顆（git log -S / blame），fixup 到那顆
 是否已推 remote：<是/否>
-feature 目錄：<feature_dir>（例：features/<name>/）
+feature 目錄：<feature_dir>/<N>-<name>/（例：features/5-cancel-booking/）
 報告檔：code_reviews/<name>.md
 隔離 DB 測試指令（唯一允許的跑法）：<isolated_db_env>=<isolated_db_review> <test_workers_env>=<1|2> <test_cmd> <args>（不准繞過 test_cmd 自己注入 DB URL）
 user 的測試是否在飛：<是/否>（決定了上面的 worker 數）
@@ -217,7 +217,7 @@ reviewer 已照固定骨架寫好 `code_reviews/<name>.md`（Pre-check 紀錄／
 - 同一段程式碼的多條 finding 可以合併一次改（例如同一個函式的 Low + 兩個 Nitpick）
 - **只碰自己的檔**。並行工作者的在製品：不修、不 stash、不 commit，連 lint 都不要
   順手幫它修
-- spec（`<feature_dir>` 底下的 test.md 等）若被 finding 打臉，**一併回寫**——測試矩陣補了
+- spec（`<feature_dir>/<N>-<name>/` 底下的 test.md 等）若被 finding 打臉，**一併回寫**——測試矩陣補了
   鏡像案例，test.md 的 TC 表也要補，否則下次照 spec 實作又會缺一次
 
 ### lint
@@ -382,7 +382,7 @@ lint 全過，`<openapi_check_cmd>` 的 exit code 是 0。
 **和你的指示不一樣的一點**：<偏離協商的地方＋原因；沒有就整段拿掉>
 
 **請你拍板的題**（每題 user story 格式：角色／情境／動作／預期行為（現在的做法）／為什麼／
-另一個選項／我建議）——**同時追加進 `<feature_dir>/<name>/decisions-pending.md`**（2026-11-05 起：§2 總表一列＋§3 一題，來源欄
+另一個選項／我建議）——**同時追加進 `<feature_dir>/<N>-<name>/decisions-pending.md`**（2026-11-05 起：§2 總表一列＋§3 一題，來源欄
 「review」、含「翻案要動哪裡」；檔案已有實作期的題就接著編號，不重排、不動已填的「拍板結果」；沒有檔就照 `decision-handoff.md` Step 3 骨架建）。
 拍板由 user 之後跑 `/decision-handoff` 開新 session 做，這裡不等。
 

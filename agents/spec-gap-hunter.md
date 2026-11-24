@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash
 
 ## 輸入（派工訊息裡有）
 
-- feature 目錄（CLAUDE.md `Harness config` 的 `feature_dir`，例 `features/<name>/`；四文件都讀）
+- feature 目錄（CLAUDE.md `Harness config` 的 `feature_dir` 底下的 `<N>-<name>/`，例 `features/5-cancel-booking/`；四文件都讀）
 - 本次 Inc 的範圍（哪些 TC、哪些檔）；沒給就整個 feature
 - 專案 backlog（例 `features/BACKLOG.md`，若有）的相關項（跨 scope 接縫）
 
@@ -32,7 +32,7 @@ tools: Read, Grep, Glob, Bash
 ## 回報（只回這張表，不貼程式碼）
 
 ```markdown
-## spec gap（features/<name>，Inc <名>）
+## spec gap（<feature_dir>/<N>-<name>，Inc <名>）
 
 | # | 清單項 | gap 一句話 | 證據（檔案:行） | 類別 | 建議（補哪條 TC／改哪份文件哪一節；新決策點給 A/B＋推薦） |
 |---|---|---|---|---|---|

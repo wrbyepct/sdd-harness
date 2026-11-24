@@ -1,6 +1,6 @@
 ---
 description: /build-feature → /auto-code-review 一條做到底、中間不停：主 agent 以串接模式實作（新決策點選推薦記暫定拍板、隔離 DB、lint 只跑改過的檔），用它的交接包自動生 review 開工指令（不問人），再派一個全新 context 的子 agent 跑 /auto-code-review（它裡面再派六個），主 agent 只收 §7 報告，最後把暫定拍板與 review 拍板題合成一份給 user。做完不 push。
-argument-hint: <feature 名（<feature_dir> 底下的目錄名）> [--inc <Inc 名>]
+argument-hint: "#<N>（或 feature 目錄 <feature_dir>/<N>-<name>） [--inc <Inc 名>]"
 allowed-tools: Agent, Bash(git:*), Bash(docker:*), Bash(uvx:*), Bash(python3:*), Bash(ls:*), Bash(grep:*), Bash(cat:*), Bash(wc:*), Read, Edit, Write, WebFetch, WebSearch, Skill, SendMessage
 ---
 
@@ -26,10 +26,11 @@ user 出手的地方只有兩處：打這支指令、把最後 `/decision-handof
 
 ### 第 1 段 — 實作（主 agent，串接模式）
 
+先解析 feature 目錄（`$ARGUMENTS` 是 `#N` → `find <feature_dir> -maxdepth 4 -type d -name 'N-*' -not -path '*/archive/*'`；是路徑就直接用）。
 用 Skill 工具執行 `/build-feature $ARGUMENTS --chain`。它會：
 - 新決策點選推薦、記「暫定拍板」（plan.md 落地紀錄＋user_story 該則加 ⚠️ 標記）
 - 測試走 `<isolated_db_env>=<isolated_db_build> <test_cmd>`，lint 只跑改過的檔
-- 每個 Inc 派一個 `implementer` 子 agent 寫 code（build-feature「派工流程」節），主 agent 只協調；brief／report 在 `<feature_dir>/briefs/`
+- 每個 Inc 派一個 `implementer` 子 agent 寫 code（build-feature「派工流程」節），主 agent 只協調；brief／report 在 `<feature_dir>/<N>-<name>/briefs/`
 - 一 Inc 一顆 commit、不 push、收尾不停，最後產「交接包」
 
 主 agent 把交接包**原樣保存**（這是第 2 段的唯一輸入）。build-feature 回報的其他內容不要再複述。
@@ -44,7 +45,7 @@ user 出手的地方只有兩處：打這支指令、把最後 `/decision-handof
 規則以 /auto-code-review 與它派的 agents 為準，下面只給這一輪的事實：
 
 範圍：<base>..HEAD 共 N 顆：<hash 一句話>、<hash 一句話>、…。搬運型（只審搬運完整性）：<hash 或「無」>。<已推 remote／整條未推 remote>。
-feature 目錄：<feature_dir>。四文件：<有哪些>。user_story N 則；test.md TC N 條，[US] 未標 N 條。拍板題：<見下表>。
+feature 目錄：<feature_dir>/<N>-<name>。四文件：<有哪些>。user_story N 則；test.md TC N 條，[US] 未標 N 條。拍板題：<見下表>。
 story-lock 起點：腳本表 mapped N／spec-only N／unmapped N（則號：…）。
 在製品：<git status --porcelain 的檔或「工作區乾淨」>。user 的 pytest：<在飛／沒有>。
 不在本案範圍、不改不 add：<其他指定的檔，沒有就「無」>。
@@ -93,7 +94,7 @@ commit 末行 Co-Authored-By: <本機慣用的那一行>。
 
 ### 第 4 段 — 交接（主 agent；2026-11-05 起作者拍板）
 
-合併報告印完，**用 Skill 工具執行 `/decision-handoff <feature_dir>/<name>`**：它會補 `decisions-pending.md` 的 §0 現況與 §1 context、
+合併報告印完，**用 Skill 工具執行 `/decision-handoff <feature_dir>/<N>-<name>`**：它會補 `decisions-pending.md` 的 §0 現況與 §1 context、
 核對實作期（build-feature 即時寫的）與 review 期（auto-code-review §7 追加的）兩批題都在 §2／§3、更新記憶、印出下個 session 的拍板開工指令。
 user 出手的第二處就是貼那段開工指令；本 session 到此結束，不在這裡拍任何一題。
 

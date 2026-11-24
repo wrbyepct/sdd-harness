@@ -8,8 +8,8 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 
 ## 輸入（派工訊息裡一定有）
 
-- **brief 路徑** `<feature_dir>/briefs/C<n>-brief.md`——**先讀，它就是你的需求**；具體數值、簽名、TC 以它為準。不要讀整份 plan.md／detailed-plan.md／test.md／user_story.md，brief 不夠時才翻對應那一段，並在 report 記一筆「brief 缺了什麼」。
-- **report 路徑** `<feature_dir>/briefs/C<n>-report.md`
+- **brief 路徑** `<feature_dir>/<N>-<name>/briefs/C<n>-brief.md`——**先讀，它就是你的需求**；具體數值、簽名、TC 以它為準。不要讀整份 plan.md／detailed-plan.md／test.md／user_story.md，brief 不夠時才翻對應那一段，並在 report 記一筆「brief 缺了什麼」。
+- **report 路徑** `<feature_dir>/<N>-<name>/briefs/C<n>-report.md`
 - **模式**：互動 or 串接；**單條／單檔測試指令**一整行（互動 `<test_cmd> <path>`；串接 `<isolated_db_env>=<isolated_db_build> <test_workers_env>=0 <test_cmd> <path>`；key 見 CLAUDE.md 的 `Harness config`）
 - **lint 指令**：只對你改的檔（例：`uvx pre-commit run --files <你改的檔>`）。會 `git add .` 的 lint 包裝指令會吃掉別人的在製品，不准用。
 
@@ -24,7 +24,7 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 1. 讀 brief（含 ③ 前面 Inc 留下的介面與暫定決策——**照它，不要推翻**；有疑義寫進 report 疑慮欄）。③' 是腳本依 ③ 點名抽出的 test.md 節／detailed-plan 小節原文，先看那裡再決定要不要翻原檔。
 2. 每條 TC：spec-first（test.md／plan.md／detailed-plan.md 要改先改）→ 寫測試 → 跑 → **確認因對的原因紅** → 最小實作 → 綠 → 下一條。一次一條，不要一次寫五條。
 3. 寫下去就綠的鎖：**不要自己跑 mutation**，把靶寫進 report 的 mutation 靶清單（檔案｜原樣 → 改壞｜預期紅的 TC｜預期不紅的 TC），主 agent 派 mutation-prover。
-4. 全部 TC 綠後：本 Inc 測試檔整檔跑一次；`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/story_lock_check.py <feature_dir>`；lint 只對自己改的檔；動到 Swagger 做 Step 5 的 OpenAPI exec 驗證（`openapi_check_cmd`，看裸 exit code）。
+4. 全部 TC 綠後：本 Inc 測試檔整檔跑一次；`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/story_lock_check.py <feature_dir>/<N>-<name>`；lint 只對自己改的檔；動到 Swagger 做 Step 5 的 OpenAPI exec 驗證（`openapi_check_cmd`，看裸 exit code）。
 5. **不跑全套**（主 agent 派 test-runner）、**不 commit**（主 agent 全綠才 commit）、**不派任何子 agent**、不 push。
 
 ## 決策點與停

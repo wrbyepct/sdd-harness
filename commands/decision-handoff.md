@@ -1,6 +1,6 @@
 ---
-description: 收工交接——把一個 feature「還要 user 拍板的事」連同施工現況與重要 context 寫成 <feature_dir>/<name>/decisions-pending.md（每題 user story 格式＋翻案要動哪裡），更新記憶，最後印出下個 session 的開工指令（逐題拍板用）。常接在 /build-and-review 或 /auto-code-review 收尾之後。只寫文件、不改程式、不 commit。
-argument-hint: [feature 目錄（<feature_dir>/<name>）；不帶＝由目前分支推]
+description: 收工交接——把一個 feature「還要 user 拍板的事」連同施工現況與重要 context 寫成 <feature_dir>/<N>-<name>/decisions-pending.md（每題 user story 格式＋翻案要動哪裡），更新記憶，最後印出下個 session 的開工指令（逐題拍板用）。常接在 /build-and-review 或 /auto-code-review 收尾之後。只寫文件、不改程式、不 commit。
+argument-hint: "[#<N> 或 feature 目錄（<feature_dir>/<N>-<name>）；不帶＝由目前分支推]"
 allowed-tools: Bash(git:*), Bash(docker:*), Bash(python3:*), Bash(ls:*), Bash(grep:*), Bash(cat:*), Bash(sed:*), Bash(wc:*), Read, Write, Edit, Grep, Glob
 ---
 
@@ -23,7 +23,7 @@ allowed-tools: Bash(git:*), Bash(docker:*), Bash(python3:*), Bash(ls:*), Bash(gr
 
 ## Step 1 — 定位與現況（全部用指令實查，不憑對話記憶）
 
-1. feature 目錄：`$ARGUMENTS` 有給就用；沒給就把分支名去掉 `feat-` 前綴，在 `<feature_dir>` 找同名目錄，找不到就問。
+1. feature 目錄：`$ARGUMENTS` 是 `#N` → `find <feature_dir> -maxdepth 4 -type d -name 'N-*' -not -path '*/archive/*'`；是路徑就直接用；沒給就把分支名去掉 `feat-`／`fix-` 前綴，`find <feature_dir> -maxdepth 4 -type d \( -name '*-<那個名字>' -o -name '<那個名字>' \)`（後者是導入 `/ticket` 之前的舊資料夾），找不到或不只一個就問。
 2. base：`origin/<base_branch>`。
 3. 實查並記下：
    ```bash
@@ -51,6 +51,8 @@ allowed-tools: Bash(git:*), Bash(docker:*), Bash(python3:*), Bash(ls:*), Bash(gr
 每題要能回答：現在的做法、為什麼、另一個選項、**翻案要動哪裡**（檔:函式、哪些 TC 翻向、哪則 user_story 要改）、推薦。
 「翻案要動哪裡」要用 grep 確認函式／TC 名字真的存在——檔案會被下個 session 直接當施工清單。
 
+標題帶「【跨張】」的題（`/build-feature` 標的）保留這個標記，並在 §2 總表「一句話」欄開頭也寫【跨張】。
+
 ## Step 3 — 寫 `<feature 目錄>/decisions-pending.md`（固定骨架）
 
 ```markdown
@@ -70,7 +72,7 @@ allowed-tools: Bash(git:*), Bash(docker:*), Bash(python3:*), Bash(ls:*), Bash(gr
 ### <#>　<標題>
 - **角色**／**情境**／**動作**／**預期行為（現在）**／**為什麼**／**另一個選項**／**翻案要動哪裡**（＋必要時 **附帶**）
 ## 4. 拍完之後
-   ← 編號步驟：翻案施工方式、清備份 tag、push／PR、合流、backlog 對齊
+   ← 編號步驟：翻案施工方式、**`/user-story #<N>`（複查模式蓋戳；它會回填下游 ticket、把跨張決定寫回母題、把這張改成「完成」）**、清備份 tag、push／PR、合流、`/backlog-align`
 ```
 
 寫法：角色與情境用具體人物與日期（同 user_story 的人物，例：行政人員小美、預約者阿明、管理員）、白話、不寫函式名進「預期行為」；
@@ -88,6 +90,7 @@ allowed-tools: Bash(git:*), Bash(docker:*), Bash(python3:*), Bash(ls:*), Bash(gr
 <feature> 拍板 session。開工前置（先做、逐項回報）：① git checkout <分支>，確認 HEAD=<短 hash>、tree=<短 tree>、工作區乾淨、git log <base>..HEAD 共 <N> 顆且零 fixup!；<base> 若前進了先報告、不要自己 rebase；② 跑 <test_busy_check> 確認沒有測試在跑。
 然後讀 <feature 目錄>/decisions-pending.md（先 §0／§1 現況與 context，細節要查再看 <列出 plan 落地紀錄節號、test.md 統計節、code_reviews/<name>.md 等實際存在的檔>），照 §2 總表順序 <題號以 → 串起>，一次只講一題、簡短講（情境兩句：人名＋發生什麼 → A／B 各一行 → 建議＋一句理由 → 一行問句；不放表格、不講 code 路徑與測試名，我問才展開），講完就停、等我回覆再下一題，不要彈選項框。<有附帶題就寫「X 的附帶題（…）跟 X 一起問。」>
 每題拍完當下把結果填進 decisions-pending.md 的「拍板結果」欄（✅ 維持／🔄 翻案＋一句理由）。全部拍完先列翻案清單給我看，我說動工才照「翻案要動哪裡」施工（fixup! 到對應 commit → autosquash → 全套，測試一律 <isolated_db_env>=<isolated_db_review> <test_workers_env>=1）。不 push、不開 PR、不刪備份 tag，等我指示。
+全部拍完、翻案施工也綠了之後，最後印出這一行提醒我跑複查：/user-story #<N>
 ```
 
 印完補一句：指令假設那時分支還停在 `<短 hash>`；中間有動過，第一步會對不上、它會先報告。

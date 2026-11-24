@@ -2,7 +2,7 @@
 """story-lock 機械對帳：user_story.md 每一則 ↔ test.md 的 TC 回指 ↔ tests/ 裡實際存在的 TC。
 
 用法：
-    python3 story_lock_check.py <feature_dir> [--tests-dir tests] [--json] [--strict]
+    python3 story_lock_check.py <feature_dir>/<N>-<name> [--tests-dir tests] [--json] [--strict]
 
 回指格式：
     test.md 每條 TC 的「內容」欄開頭、以及 tests/ 裡該測試 docstring 的第一行，用 `[US n]`

@@ -61,7 +61,7 @@ schema（validators）與它在 API 層的 router——**業務邏輯在哪就�
 **模式乙：不帶參數** → diff。從 `git diff HEAD`（空則 `git show HEAD`）抓出被動到的函式，
 **整支函式**看，不是只看 hunk——繞常常是 hunk 之外那幾行造成的。
 
-兩種模式都先讀 `<feature_dir>` 底下的 `plan.md` 決策表（D<n>）：spec 明列的取捨（例如「刻意分兩支不合併」、
+兩種模式都先讀 `<feature_dir>/<N>-<name>/plan.md` 決策表（D<n>）：spec 明列的取捨（例如「刻意分兩支不合併」、
 「順序守門必須先 A 再 B」）是慣例的一部分，不是 finding。
 
 ## Step 1 — 前置查證（做完才准寫 finding）

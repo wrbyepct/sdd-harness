@@ -17,14 +17,16 @@
 
 ```mermaid
 flowchart LR
-    U["/user-story<br/>研究現況 → 白話需求"] --> P["/plan-feature<br/>兩案擇一 → 逐決策 → 三文件"]
+    T["/ticket<br/>立題：要什麼、從哪接"] --> U["/user-story<br/>研究現況 → 白話需求"]
+    U --> P["/plan-feature<br/>兩案擇一 → 逐決策 → 三文件"]
     P --> B["/build-and-review<br/>嚴格 TDD → 多 agent 審查<br/>（不停）"]
     B --> D["/decision-handoff<br/>待拍板集中成一份"]
     D --> H["拍板 session<br/>一題一題"]
-    H --> V["/user-story 複查蓋戳"]
+    H --> V["/user-story 複查蓋戳<br/>結案、回填下游 ticket"]
     B --> L[("lessons/<br/>教訓庫")]
     L -. 下一個 feature 開工前召回 .-> U
 
+    T:::gate
     U:::gate
     P:::gate
     H:::gate
@@ -34,10 +36,14 @@ flowchart LR
 **權威順序：產品原則 > user story > plan 三文件。** user story 是規劃的**輸入**，不是輸出；
 實作與審查全程不停，碰到的決策先選最好的做下去、記成一題，集中到下一個 session 拍板。
 
-**四個人工關卡**（其他全部無人值守）：
+**所有工作從 `/ticket` 進**：一項工作一個資料夾 `features/<N>-<name>/`（`ticket.md`＋之後的四文件），`features/BACKLOG.md` 是單表索引，
+之後每支指令都收 `#N`。級別分 tiny／small／medium／large：tiny 直接修、small 走精簡規劃、large 拆成母題＋子題。
+
+**五個人工關卡**（其他全部無人值守）：
 
 | 關卡 | 人做什麼 |
 |---|---|
+| ticket 定稿 | 給一到三個具體例子、拍級別、看整張 ticket（只寫要什麼與從哪接，不寫解法） |
 | user story 拍板 | 先看一則範例、確認格式與用詞，再看整份；每則對照產品原則 |
 | 架構 A/B 裁決 | `/plan-feature` 先出兩個正交的架構方案（`proposal.md`），你看對照表選一個，選完清 context |
 | plan 決策點 | 每個決策看 A/B/C 比較表後選一個，決策編號 `D<n>`、附 why |
@@ -89,23 +95,25 @@ agent 在實作中發現 spec 漏寫而自己做了決定，不能改上層文�
 
 | 類別 | 內容 |
 |---|---|
-| commands（9） | `user-story`、`plan-feature`、`build-feature`、`build-and-review`、`auto-code-review`、`decision-handoff`、`code-review`、`dry-audit`、`design-audit` |
+| commands（11） | `ticket`、`backlog-align`、`user-story`、`plan-feature`、`build-feature`、`build-and-review`、`auto-code-review`、`decision-handoff`、`code-review`、`dry-audit`、`design-audit` |
 | agents（12） | review：`reviewer`、`story-lock-auditor`、`finding-verifier`、`dry-auditor`、`design-auditor`、`mutation-prover`；plan：`codebase-researcher`；build：`implementer`、`spec-gap-hunter`、`neighbor-finder`、`test-runner`；共用：`lessons-recaller` |
 | hooks | `guard-rails`：擋直接 commit／push 保護分支、`git restore` 整檔退回、測試互撞等（規則見 `hooks/guard_rails.py` 開頭）；`agent_bash_guard`：依子 agent 類型限制 Bash 與寫檔（純讀的不能寫、跑測試的只能跑測試指令且必帶隔離 DB） |
-| scripts | `inc_brief.py`（從三文件抽一個 Inc 的 implementer brief）、`story_lock_check.py`（user story ↔ 測試對帳）、`lessons_index.py`（教訓索引）、`add_history_banner.py`（舊 feature 文件加「歷史文件」橫幅）、`scan_sensitive.sh`（公開前掃敏感字） |
+| scripts | `backlog_check.py`（BACKLOG 單表 ↔ ticket 對帳）、`inc_brief.py`（從三文件抽一個 Inc 的 implementer brief）、`story_lock_check.py`（user story ↔ 測試對帳）、`lessons_index.py`（教訓索引）、`add_history_banner.py`（舊 feature 文件加「歷史文件」橫幅）、`scan_sensitive.sh`（公開前掃敏感字） |
 | docs 範本 | `CONFIG.md`（設定表）、`LESSONS.md`（教訓格式）、`PRODUCT_PRINCIPLES.md`（產品原則）、`CONVENTIONS.md`（寫法慣例＋黃金樣本） |
 
 ### commands（你打的指令）
 
 | command | 什麼時候打 | 做什麼 | 產出 | 會停下來問你的地方 |
 |---|---|---|---|---|
-| `/user-story <需求一句>` | 新 feature 的第一步 | 建 feature 資料夾、派 `codebase-researcher` 寫現況快照、以快照為據寫白話 user story、逐則對照產品原則 | `research.md`、`user_story.md` | 一則範例的格式用詞；整份拍板；違反原則的則 |
-| `/user-story <feature 路徑>` | 實作與拍板都結束後 | 複查模式：拿規劃前那份當底稿，對照 plan、test.md、每輪 review、commit 訊息逐則定稿、蓋戳 | 定稿的 `user_story.md` | 每則定稿 |
-| `/plan-feature <feature 路徑>` | user story 拍板後；每次 `/clear` 用同一句重入 | 第一次：兩個正交架構方案；第二次：S1–S6 逐決策、寫 plan.md；第三次：detailed-plan、test.md、派 `spec-gap-hunter`、`story_lock_check` 對帳 | `proposal.md`、`plan.md`、`detailed-plan.md`、`test.md` | 架構 A/B 裁決；每個 D 決策；spec gap 要不要補 |
-| `/build-feature <feature 路徑>` | 想自己盯實作時 | 主 agent 只協調：每個 Inc 抽一份 brief、派一個 `implementer` 嚴格 TDD（一次一條 TC 先紅後綠），全套＋mutation 綠了才 commit（一 Inc 一顆）；新決策點不停、寫進 `decisions-pending.md` | commits、`decisions-pending.md` | 只在不可逆的事（刪資料 migration、push、碰別人在製品） |
-| `/build-and-review <feature 路徑>` | 平常用這個 | 串接模式跑 `/build-feature` → 自動生 review 開工指令 → 全新 context 子 agent 跑 `/auto-code-review` → 合併報告 → 自動跑 `/decision-handoff` | 上面全部＋拍板 session 開工指令 | 同上 |
+| `/ticket [級別] <需求一句>` | 任何工作的第一步 | 只看入口層、一次一題釐清、提議級別；建 `features/<N>-<name>/ticket.md`（現況／預期／例子／接在哪／不做／完成條件／待拍）＋BACKLOG 一列；large 拆成母題＋互相連結的子題 | `ticket.md`、BACKLOG 一列 | 例子、級別、整張定稿 |
+| `/user-story #N` | ticket 定稿後（small／medium） | 需求模式：讀 ticket、把狀態改「進行中」、派 `codebase-researcher` 寫現況快照、以快照為據寫白話 user story、逐則對照產品原則 | `research.md`、`user_story.md` | 一則範例的格式用詞；整份拍板；違反原則的則 |
+| `/user-story #N`（同一句） | 實作與拍板都結束後 | 複查模式（資料夾裡已有 `plan.md` 就是它）：拿規劃前那份當底稿，對照 plan、test.md、每輪 review、commit 訊息逐則定稿、蓋戳；收尾回填下游 ticket 的「接在哪」、跨張決定寫回母題、狀態改「完成」 | 定稿的 `user_story.md`、結案的 ticket | 每則定稿 |
+| `/plan-feature #N` | user story 拍板後；每次 `/clear` 用同一句重入 | 第一次：兩個正交架構方案（small 沒有真的不同的做法可跳過）；第二次：S1–S6 逐決策、寫 plan.md；第三次：detailed-plan、test.md、派 `spec-gap-hunter`、`story_lock_check` 對帳（small 最多 3 個 Inc） | `proposal.md`、`plan.md`、`detailed-plan.md`、`test.md` | 架構 A/B 裁決；每個 D 決策；spec gap 要不要補 |
+| `/build-feature #N` | 想自己盯實作時 | 主 agent 只協調：每個 Inc 抽一份 brief、派一個 `implementer` 嚴格 TDD（一次一條 TC 先紅後綠），全套＋mutation 綠了才 commit（一 Inc 一顆）；新決策點不停、寫進 `decisions-pending.md` | commits、`decisions-pending.md` | 只在不可逆的事（刪資料 migration、push、碰別人在製品） |
+| `/build-and-review #N` | 平常用這個 | 串接模式跑 `/build-feature` → 自動生 review 開工指令 → 全新 context 子 agent 跑 `/auto-code-review` → 合併報告 → 自動跑 `/decision-handoff` | 上面全部＋拍板 session 開工指令 | 同上 |
 | `/auto-code-review` | 想單獨審一段 commit 範圍時 | 無人值守審查：派六個 review agent、修 finding 並 fixup 到引入它的那顆 commit、mutation 證明、寫教訓 | `code_reviews/<name>.md`、`decisions-pending.md` 追加、`lessons/` | 不停（`--ask` 才問） |
-| `/decision-handoff <feature 路徑>` | 收工時（`/build-and-review` 會自動跑） | 實查現況、蒐集所有待拍板題、補齊 context，印下一個 session 的逐題拍板開工指令 | `decisions-pending.md`、開工指令 | 不停 |
+| `/decision-handoff #N` | 收工時（`/build-and-review` 會自動跑） | 實查現況、蒐集所有待拍板題、補齊 context，印下一個 session 的逐題拍板開工指令 | `decisions-pending.md`、開工指令 | 不停 |
+| `/backlog-align` | 覺得 BACKLOG 跟實際對不上時 | 用 git 實查每一項的狀態（不照表上的文字相信），補漏改的狀態（表與 ticket 檔頭兩處）、結案的移表、列場外殘留，最後跑 `backlog_check.py` | 對齊的 BACKLOG、`BACKLOG-log.md` | 算不算結案的新形狀；要刪的殘留 |
 | `/code-review` | 手動審目前的 diff | 單次審查，含範圍外改動與 research 契約對帳；也是 `reviewer` agent 用的標準 | findings 報告 | 拍板題 |
 | `/dry-audit`、`/design-audit` | 懷疑重複規則或設計繞路時 | 分別掃「同一條業務規則寫了兩份」與「行為對但寫法繞」，列清單讓你逐條拍 | 排好序的清單 | 每條拍了才動工 |
 
@@ -201,13 +209,23 @@ agent 在實作中發現 spec 漏寫而自己做了決定，不能改上層文�
 以虛構的會議室預約系統為例，做「取消預約」這個 feature。下面是我實際的工作方式；
 plugin 指令的完整名稱是 `/sdd-harness:<name>`，沒有撞名時可以直接打 `/<name>`。
 
-### 1. 提需求：先研究現況，再寫白話的 user story（`/user-story`）
+### 0. 立題（`/ticket`）
 
 ```text
-/user-story 預約要能取消：一般成員只能取消自己的，管理員可以取消任何人的，已經開始的不能取消
+/ticket 預約要能取消：一般成員只能取消自己的，管理員可以取消任何人的，已經開始的不能取消
 ```
 
-agent 先建 `features/cancel-booking/`，派 `codebase-researcher` 讀現在的 code（預約流程、權限怎麼判斷、哪些測試鎖著什麼），
+agent 只看入口層（路由清單、相關模組有哪些檔），一次問你一題，一定會問到一到三個具體例子；然後提議級別（這裡是 medium）。
+你拍板後它建 `features/5-cancel-booking/ticket.md`，並在 `features/BACKLOG.md` 未結案表加一列。
+ticket 只寫**現況／預期／例子／接在哪／不做／完成條件／待拍**，不寫解法；最後一行是開工指令 `/user-story #5`。
+
+### 1. 先研究現況，再寫白話的 user story（`/user-story`）
+
+```text
+/user-story #5
+```
+
+agent 讀 ticket、把這一項改成「進行中」，派 `codebase-researcher` 讀現在的 code（預約流程、權限怎麼判斷、哪些測試鎖著什麼），
 寫成 `research.md`：每一條「系統現在怎麼做」都有編號（例 `B3`），之後所有文件引用編號，不憑印象。
 然後它先給**一則範例** user story 讓你確認格式和用詞：
 
@@ -220,15 +238,15 @@ agent 先建 `features/cancel-booking/`，派 `codebase-researcher` 讀現在的
 
 範例 OK 才寫完整份，寫完逐則對照 `docs/PRODUCT_PRINCIPLES.md`，違反的列出來讓你決定改 story 還是記例外。
 **user story 是需求的最高原則**（僅次於產品原則）：它是給不寫程式的人看的，所以你自己也能一眼看出「這不是我要的」。
-拍板後它停下來，印出下一步：`/clear` 然後 `/plan-feature features/cancel-booking`。
+拍板後它停下來，印出下一步：`/clear` 然後 `/plan-feature #5`。
 
 ### 2. 兩個架構方案擇一，再逐決策拍板（`/plan-feature`）
 
 ```text
-/plan-feature features/cancel-booking
+/plan-feature #5
 ```
 
-它只接路徑，每次 `/clear` 之後用同一句重入，自己看資料夾停在哪一站。第一次進場：
+它只接 `#N`（或資料夾路徑），每次 `/clear` 之後用同一句重入，自己看資料夾停在哪一站。第一次進場：
 `lessons-recaller` 撈這個模組過去踩過的雷，然後**一定出兩個正交的架構方案**寫成 `proposal.md`，
 用對照表比（列＝這次特有的 driver → 產品原則 → 可維護性 → 效率；格子只填勝／平／負＋一句證據），給你推薦：
 
@@ -264,7 +282,7 @@ test.md 的每一條 TC 都標出它鎖哪一則：
 ### 3. 實作＋審查，一條做到底、中間不停（`/build-and-review`）
 
 ```text
-/build-and-review features/cancel-booking
+/build-and-review #5
 ```
 
 接下來不用顧：
@@ -287,14 +305,16 @@ test.md 的每一條 TC 都標出它鎖哪一則：
 ### 5. 複查蓋戳，然後 push 由你來
 
 ```text
-/user-story features/cancel-booking
+/user-story #5
 ```
 
-複查模式：拿規劃前那份 user story 當底稿，對照 plan、test.md、每一輪 review、commit 訊息，逐則定稿、蓋「已實作逐則複查」戳。
+同一句，資料夾裡已經有 `plan.md` 所以進複查模式：拿規劃前那份 user story 當底稿，對照 plan、test.md、每一輪 review、commit 訊息，逐則定稿、蓋「已實作逐則複查」戳。
+蓋完戳順手收尾：依賴這張的下游 ticket 回填「接在哪」、ticket 與 BACKLOG 改「完成」並移到已結案表。
 **push 和開 PR 由你自己來**，`guard-rails` 會擋下 agent 直接 commit／push 保護分支。
 
 ## 目前的限制
 
+- 2026-11-24 這批改版（`/ticket` 入口、BACKLOG 單表、一項一資料夾、指令改收 `#N`、small 精簡規劃）**還沒用真實工作跑過一輪**。
 - 2026-11-04／05 這批改版（user story 前置、兩案架構、全程不停＋`decisions-pending`、慣例文件、產品原則）**還沒用真實 feature 跑過一輪**；
   規則都寫進 command 了，但「無人值守下 agent 選的決策會不會系統性偏保守」這類問題要看第一次的翻案率。
 - 子 agent 的 Bash／寫檔限制現在由 `hooks/agent_bash_guard.py` 依 `agent_type` 分流（純讀／寫報告／跑測試三種 profile）；
@@ -328,6 +348,7 @@ test.md 的每一條 TC 都標出它鎖哪一則：
 | 16 | **無人值守真的不停** | 實查 transcript：會停的只有「寫 `.claude/`」與「Bash heredoc 寫檔」兩種內建安全確認。教訓庫搬出 `.claude/`、寫檔一律 Write／Edit（見 `docs/CONFIG.md`） | ✅ 完成（待真實驗證） |
 | 17 | **build 主 agent 只協調** | 主 agent 自己做完 7 個 Inc 時 context 漲到 97 萬、auto-compact 兩次、cache_read 佔全部 token 3/4。改成每個 Inc 派一個 `implementer`（`inc_brief.py` 抽規格、主 agent 只手寫「前面留下的」一段、四狀態回報） | ✅ 完成（四場真實驗證） |
 | 18 | **子 agent 分模型** | 判準是「做錯會不會被下一步自動抓到」：`test-runner` 用 haiku、`mutation-prover` 用 sonnet（主 agent 驗回報完整）；判斷類的留跟主 agent 同模型 | ✅ 完成（真實驗證） |
+| 19 | **立題入口與任務分級** | `/ticket`：一句需求 → 一張只寫「要什麼、從哪接」的 ticket；tiny／small／medium／large 四級，large 拆母題＋子題（上游複查時回填下游的入口、跨張決定寫回母題）；BACKLOG 改成可機械檢查的單表 | ✅ 完成（待真實驗證） |
 | 10 | **agent 查書** | 測試經典（Khorikov《Unit Testing》、Freeman & Pryce《GOOS》）已轉成可檢索的切片；讓 reviewer 在判斷 mock 用法、over-specification 時引用章節 | 規劃中 |
 | 11 | **舊文件不再誤導 agent** | feature 文件按時間分資料夾，同一個行為的最新版散在多份文件裡。做法：舊文件加「歷史文件」橫幅、code 裡用 `決策 <feature> D<n>` 標籤指回決策、research 依「API 文件 → 測試 → code → 決策」順序讀、腳本檢查標籤沒有斷指標 | 設計定案 |
 

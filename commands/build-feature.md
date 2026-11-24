@@ -1,5 +1,5 @@
 ---
-description: Implement a planned feature under features/<name>/ with strict TDD (red → green, one TC at a time) against its plan.md / detailed-plan.md / test.md, actively hunting spec gaps and syncing any newly found edge case back into all three docs. Implementation must be the most elegant option — DRY, idiomatic, project-convention-first. The main agent only coordinates: each Inc is handed to one implementer subagent; the main agent writes the brief, dispatches the full suite / mutation run, and commits.
+description: Implement a planned feature under <feature_dir>/<N>-<name>/ with strict TDD (red → green, one TC at a time) against its plan.md / detailed-plan.md / test.md, actively hunting spec gaps and syncing any newly found edge case back into all three docs. Implementation must be the most elegant option — DRY, idiomatic, project-convention-first. The main agent only coordinates: each Inc is handed to one implementer subagent; the main agent writes the brief, dispatches the full suite / mutation run, and commits.
 allowed-tools: Agent, Bash(git status:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git add:*), Bash(git commit:*), Bash(ls:*), Bash(grep:*), Bash(ps:*), Bash(python3:*), Bash(docker compose:*), Read, Write, Edit, Glob, Grep, WebFetch, WebSearch, SendMessage
 ---
 
@@ -10,8 +10,11 @@ allowed-tools: Agent, Bash(git status:*), Bash(git log:*), Bash(git diff:*), Bas
 - Recent commits: !`git log --oneline -5`
 - Feature dirs: !`ls features/ 2>/dev/null || echo "(no features/ dir)"`
 
-**Target feature** = `$ARGUMENTS`. If empty, look at `features/BACKLOG.md`（若專案有）開場段的
-queued next scope and confirm the target with the user before writing anything.
+**Target feature** = `$ARGUMENTS`（是 `#N` → `find <feature_dir> -maxdepth 4 -type d -name 'N-*' -not -path '*/archive/*'` 取 feature 目錄；是路徑就直接用）. If empty, look at `<feature_dir>/BACKLOG.md`
+（「主線順序」與狀態「進行中」的列） for the next scope and confirm the target with the user before writing anything.
+
+**Step 0 also reads `ticket.md`** in the feature folder: its「不做」is the scope fence, its「完成條件」is what done means;
+if it has a 母題 line, read the mother ticket's「共同決定」— the E items are settled, do not reopen them.
 
 **專案設定**：測試／lint／文件路徑等一律從專案 `CLAUDE.md` 的 `## Harness config` 段讀
 （`test_cmd`、`lint_cmd`、`isolated_db_env`、`isolated_db_build`、`test_workers_env`、`test_busy_check`、
@@ -62,7 +65,7 @@ context 從 6 萬漲到 97 萬觸發兩次 auto-compact，累計 cache_read 佔�
 
 ## Step 0 — Load the spec (MANDATORY, before touching any file)
 
-Read **all three** documents for the target feature（在 `<feature_dir>` 底下）:
+Read **all three** documents for the target feature（`<feature_dir>/<N>-<name>/`）:
 
 | 檔案 | 讀什麼 |
 |---|---|
@@ -92,7 +95,7 @@ spec-gap-hunter 回來的 gap 表照 Step 1 處理（spec-first 補進三文件�
 Inc＝一顆 commit 的量，對應 detailed-plan 標題含 `（C<n>；plan …；US …）` 的那一段
 （例：`## 3. 取消預約守門（C2；plan D3、D4；US 5, 6）`）。依序（**一次只派一個，不平行**）：
 
-1. **抽 brief**：`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/inc_brief.py <feature_dir> C<n>` → `<feature_dir>/briefs/C<n>-brief.md`
+1. **抽 brief**：`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/inc_brief.py <feature_dir>/<N>-<name> C<n>` → `<feature_dir>/<N>-<name>/briefs/C<n>-brief.md`
    （①規格＝detailed-plan 該段＋test.md 該 C 的 TC、②為什麼＝標題列的 plan 決策列＋US 原文、④規矩指路）。
    印「⚠️ 抽不到」＝文件沒照 `（C<n>；plan …；US …）` 慣例（例如舊 feature），照 plan.md Implementation Order 手寫補進 ③。
 2. **寫 ③**（brief 裡唯一手寫段，只寫事實、不貼歷史）：前面 Inc report「新增／改掉的介面」裡跟這段有關的、
@@ -100,7 +103,7 @@ Inc＝一顆 commit 的量，對應 detailed-plan 標題含 `（C<n>；plan …�
    **寫完 ③ 再跑一次第 1 步的指令**：腳本會把 ③ 點名的 `test.md §<節>`（`§0`、`§10`、`§M`…；前綴是 plan／decisions-pending 等別份文件的不算）與 `D<n>.<m>` 小節原文抽進「③' 點名原文」，①已有的不重抄。
    ③ 裡點名別份文件就寫清楚文件名（`plan §4`），要給原文的 test.md 節寫 `§` 編號（作者實測：沒抽原文時 implementer 每次都得自己翻 test.md 的共用 fixture 節與慣例節）。
 3. **派**：Agent 工具 `subagent_type: implementer`，前景等它回。派工訊息只有：一句這個 Inc 在 feature 裡的位置、brief 路徑（「先讀，它就是你的需求」）、
-   report 路徑 `<feature_dir>/briefs/C<n>-report.md`、模式、單檔測試指令（互動 `<test_cmd> <path>`；串接 `<isolated_db_env>=<isolated_db_build> <test_workers_env>=0 <test_cmd> <path>`）、
+   report 路徑 `<feature_dir>/<N>-<name>/briefs/C<n>-report.md`、模式、單檔測試指令（互動 `<test_cmd> <path>`；串接 `<isolated_db_env>=<isolated_db_build> <test_workers_env>=0 <test_cmd> <path>`）、
    lint 指令（只對改的檔，例：`uvx pre-commit run --files <改的檔>`）。記下回傳的 agent id（修正輪續派用）。
 4. **照狀態處理**：
    | 狀態 | 你做什麼 |
@@ -156,9 +159,11 @@ touch a new area, actively hunt for what the docs missed.
   → 判斷它是「規格漏寫」還是「新決策點」
       ├─ 規格漏寫（答案唯一、無取捨）→ 直接補，並同步回三文件
       └─ 新決策點（有取捨）→ **不停**（2026-11-05 起作者拍板，兩種模式皆同）：
-         ① 當下就把這一題寫進 `<feature_dir>/<name>/decisions-pending.md`（骨架照 `decision-handoff.md` Step 3：
+         ① 當下就把這一題寫進 `<feature_dir>/<N>-<name>/decisions-pending.md`（骨架照 `decision-handoff.md` Step 3：
             §2 總表一列＋§3 一題 user story 格式——角色／情境／動作／預期行為（現在的做法）／為什麼／另一個選項／翻案要動哪裡；
             來源欄寫「實作期」；檔案不存在就建、§0 現況先留空給 /decision-handoff 填）
+            **這張 ticket 有母題時多問自己一句**：「這張這樣決定了，同母題的另一張一定要跟著一樣嗎？」是 → 該題標題後面加「【跨張】」
+            （`/user-story` 複查模式會把拍定的跨張題寫回母題成 E 條）；照舊不停、選最好的做
          ② 選你評估最好的那個做下去；改到 user_story 已拍板的某一則也照改，該則加「⚠️ 暫定改寫（<日期>，見 decisions-pending T<n>）」、原句留在括號裡
          ③ plan.md「落地紀錄」只加一行指到 decisions-pending 的題號，不重抄
          ④ 拍板由 user 之後跑 `/decision-handoff` 開新 session 逐題做；你不問、不等
@@ -173,7 +178,7 @@ touch a new area, actively hunt for what the docs missed.
 **TC 回指 user_story 的固定格式（給 `story_lock_check.py` 與 `story-lock-auditor` 機械對帳用）**：
 - test.md 每條 TC 的「內容」欄**開頭**寫 `[US n]`；鎖多則寫 `[US 3, 4]`；結構鎖／DRY 鎖等不對應任何一則的寫 `[US —]`。沒有這個標記的 TC 視為漏標。
 - tests/ 的測試 docstring **第一行**同樣寫 `TC-XXnn [US n]：<一句話>`。
-- 寫完一個 Inc 跑一次 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/story_lock_check.py <feature_dir>`，`unmapped` 的則要嘛補 TC、要嘛在回報裡寫明為什麼它不是可測行為。
+- 寫完一個 Inc 跑一次 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/story_lock_check.py <feature_dir>/<N>-<name>`，`unmapped` 的則要嘛補 TC、要嘛在回報裡寫明為什麼它不是可測行為。
 文件與程式碼同一顆 commit 落地，不留「程式改了文件沒改」的時間窗。
 
 ---
@@ -295,7 +300,7 @@ touch a new area, actively hunt for what the docs missed.
 4b. **使用者可見文字一次過目**：實作期自行定案的提醒／警告／錯誤訊息（來源＝各 Inc report 的「使用者可見文字」），收尾時整批列成一張表（位置／原句），
    **寫成 `decisions-pending.md` 的一題**（來源「實作期·文案」，翻案要動哪裡＝每句的檔:行），不要中途逐句停下來等拍板。
 5. **文件同步確認**：三份 spec 是否已反映所有實作期的改動？
-   plan.md 有沒有「落地紀錄」段可以補？BACKLOG.md（若有）的狀態要不要更新？
+   plan.md 有沒有「落地紀錄」段可以補？（BACKLOG 與 ticket 的狀態不在這裡改——「完成」由 `/user-story` 複查模式蓋戳時改；ticket 定稿後不寫過程。）
 6. **lessons**（來源含各 Inc report 的「踩到的雷」）：這個 feature 踩到的雷、補的 spec gap 裡**有普遍性的**（下次在同類 code 會再踩），
    每則一檔寫到 `<lessons_dir>/<area>/<YYYY-MM-DD>-<slug>.md`（格式見 `${CLAUDE_PLUGIN_ROOT}/docs/LESSONS.md`，`source` 指 plan.md 落地紀錄或 journal），
    更新 `<lessons_dir>/INDEX.md`（`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/lessons_index.py`），跟最後一個 Inc 同一顆 commit。只屬於這個 feature 的不寫。
@@ -362,8 +367,8 @@ touch a new area, actively hunt for what the docs missed.
 ```
 範圍：<base>..HEAD 共 N 顆：<hash 一句話>…
 搬運型 commit：<hash 或「無」>（本次有整包搬運外部交付物才有）
-feature 目錄：<feature_dir>；user_story N 則；test.md TC N 條，[US] 未標 N 條（跑 story_lock_check.py）
-暫定拍板：<decisions-pending.md 的題號＋一句話，每題一行；影響到 user_story 第幾則>（沒有就「無」；細節在 <feature_dir>/<name>/decisions-pending.md）
+feature 目錄：<feature_dir>/<N>-<name>；user_story N 則；test.md TC N 條，[US] 未標 N 條（跑 story_lock_check.py）
+暫定拍板：<decisions-pending.md 的題號＋一句話，每題一行；影響到 user_story 第幾則>（沒有就「無」；細節在 <feature_dir>/<N>-<name>/decisions-pending.md）
 spec gap 已回寫：<幾條，各一句>
 在製品：<git status --porcelain 不是我的檔，或「無」>
 ```

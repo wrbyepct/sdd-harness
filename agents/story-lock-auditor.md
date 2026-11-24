@@ -10,7 +10,7 @@ tools: Read, Grep, Glob, Bash
 
 - **派工包**（含 feature 目錄、目標 commit、隔離 DB 指令）
 
-- feature 目錄（CLAUDE.md `Harness config` 的 `feature_dir`，例 `features/<name>/`；含 `user_story.md`、`test.md`）
+- feature 目錄（CLAUDE.md `Harness config` 的 `feature_dir` 底下的 `<N>-<name>/`，例 `features/5-cancel-booking/`；含 `user_story.md`、`test.md`）
 - 目標 commit（只用來知道這次動了哪些檔；你核對的是整個 feature）
 
 ## 做法：先機械、後語意
@@ -38,7 +38,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/story_lock_check.py <feature 目錄>
 ## 回報（**只回這張表＋兩個清單**）
 
 ```markdown
-## story-lock 核對（features/<name>）
+## story-lock 核對（<feature_dir>/<N>-<name>）
 
 | 則 | 狀態 | 鎖它的 TC | 缺什麼（部分／沒鎖才寫） |
 |---|---|---|---|

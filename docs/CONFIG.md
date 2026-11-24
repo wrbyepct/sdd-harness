@@ -9,7 +9,7 @@
 | key | 值 | 說明 |
 |---|---|---|
 | `base_branch` | `main` | feature 分支要合回的分支；review 範圍＝`<base_branch>..HEAD` |
-| `feature_dir` | `features/<name>/` | 每個 feature 的四文件（plan／detailed-plan／test／user_story）放哪；按版本分可寫 `features/v<version>/<name>/` |
+| `feature_dir` | `features/` | feature 根目錄。每項工作一個資料夾 `<feature_dir>/<N>-<name>/`（`ticket.md`＋research／user_story／plan／detailed-plan／test），`<feature_dir>/BACKLOG.md` 是索引；要分層見下「資料夾分層」 |
 | `test_cmd` | `./run test` | 跑測試的指令，可接路徑或 pytest 參數 |
 | `isolated_db_env` | `PYTEST_DB_BASE` | 換測試 DB 名稱的環境變數；無人值守的 build／review 一律帶它，避免踩到你手上正在跑的測試 |
 | `isolated_db_build` | `app_test_bf` | `/build-and-review` 實作段用的隔離 DB 名 |
@@ -40,16 +40,32 @@
 
 1. **把你的 `test_cmd`、`lint_cmd`、`test_busy_check` 加進權限白名單**（`.claude/settings.json` 的 `permissions.allow`，例如 `"Bash(./run test:*)"`）。
    command 的 `allowed-tools` 沒辦法預先知道你的指令長怎樣；沒加的話，無人值守的 `/build-and-review` 會卡在權限提示。
-2. 選配：如果專案有 backlog 檔（例如 `features/BACKLOG.md`），`spec-gap-hunter` 會讀它找跨 feature 的接縫；沒有就跳過，不用設定。
+2. 不用先建 backlog：第一次跑 `/ticket` 會照骨架建 `<feature_dir>/BACKLOG.md`。`spec-gap-hunter` 會讀它找跨 feature 的接縫。
 
 ## 這套 harness 自己會建立的目錄
 
 | 目錄 | 誰寫 | 內容 |
 |---|---|---|
-| `features/<name>/` | `/user-story`、`/plan-feature`、`/build-feature`、`/decision-handoff` | `research.md`（現況快照）、`user_story.md`、`proposal.md`（兩個架構方案與裁決）、`plan.md`、`detailed-plan.md`、`test.md`、`decisions-pending.md`（實作與 review 期自己選的決策，等你拍板） |
+| `features/BACKLOG.md`、`BACKLOG-log.md` | `/ticket`、`/user-story`、`/backlog-align` | 單表索引（主線順序、未結案表、已結案表）；對帳紀錄 |
+| `features/<N>-<name>/` | `/ticket`、`/user-story`、`/plan-feature`、`/build-feature`、`/decision-handoff` | `ticket.md`（要什麼、從哪接；定稿後只回填入口與狀態）、`research.md`（現況快照）、`user_story.md`、`proposal.md`（兩個架構方案與裁決）、`plan.md`、`detailed-plan.md`、`test.md`、`decisions-pending.md`（實作與 review 期自己選的決策，等你拍板） |
 | `code_reviews/` | `reviewer` agent | 每一輪 review 一份報告 |
 | `lessons/` | `/auto-code-review` §7、`/build-feature` 收尾 | 一則一檔的教訓庫＋`INDEX.md`，由 `lessons-recaller` 召回 |
 | `logs/` | `test-runner` agent | 測試完整輸出 |
+
+## 資料夾分層與 BACKLOG
+
+預設不分層：`features/5-cancel-booking/`。`#N` 是唯一的鑰匙，所有指令用編號找資料夾
+（`find <feature_dir> -maxdepth 4 -type d -name 'N-*'`），所以**資料夾立題後不搬、不改名**。
+
+要按版本或產品線分層的專案（例如同一套 code 有通用版與客製版），可以自己多包幾層：
+`features/v1.2/<variant>/5-cancel-booking/`。`/ticket` 會照既有的層放（拿不準會問你），`scripts/backlog_check.py` 不管幾層都認；
+`features/archive/` 底下的東西一律不看，拿來放封存的舊清單。封存過舊清單的話，在 BACKLOG 檔頭寫一句「上一版最後一號是 #N」，
+新編號就會從 N+1 開始、不會重用。
+
+狀態寫在兩處（BACKLOG 表上那一列、`ticket.md` 檔頭），由流程節點當下改：`/ticket` 立題、`/user-story` 需求模式改「進行中」、
+複查蓋戳改「完成」。漏改的用 `/backlog-align` 補（它用 git 實查，不照文字相信）。
+想要自動提醒可以自己掛一個 Stop hook，比對 `origin/<base_branch>` 自上次對帳後有沒有新 commit；plugin 沒有內建，
+因為它會讓每個 session 都跑 `git fetch`。
 
 ## 別棵樹跑測試（`test_tree_env`）
 

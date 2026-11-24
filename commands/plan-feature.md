@@ -1,6 +1,6 @@
 ---
-description: 規劃一個 feature（輸入＝/user-story 需求模式拍板的 user_story.md＋research.md）：S0 recaller → S0.5 兩個正交架構方案 proposal.md → /clear → S1–S6 逐決策拍板 → S7 plan.md → /clear → S8 detailed-plan.md／test.md（[US n]、spec-gap-hunter、story_lock_check）。每次 /clear 後用 /plan-feature <feature_dir>/<name> 重入。
-argument-hint: <feature_dir>/<name>，例如 features/cancel-booking（必填；資料夾由 /user-story 需求模式建好、含拍板的 user_story.md 與 research.md。每次 /clear 後用同一句重入）
+description: 規劃一個 feature（輸入＝/ticket 的 ticket.md＋/user-story 需求模式拍板的 user_story.md＋research.md）：S0 recaller → S0.5 兩個正交架構方案 proposal.md（small 沒有真的不同的做法時可跳過）→ /clear → S1–S6 逐決策拍板 → S7 plan.md → /clear → S8 detailed-plan.md／test.md（[US n]、spec-gap-hunter、story_lock_check；small 最多 3 個 Inc）。每次 /clear 後用 /plan-feature #N 重入。
+argument-hint: "#<N>（或 feature 目錄，例如 features/5-cancel-booking；必填。資料夾由 /ticket 建好、含 /user-story 拍板的 user_story.md 與 research.md。每次 /clear 後用同一句重入）"
 allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(ls:*), Bash(find:*), Bash(grep:*), Bash(uv pip list:*), Bash(python3:*), Read, Glob, Grep, Write, Agent
 ---
 
@@ -11,26 +11,32 @@ allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(ls:
 - Existing feature plans: !`ls features/ 2>/dev/null || echo "(no features/ dir yet)"`
 - 使用者給的參數：`$ARGUMENTS`
 
-## Entry & re-entry（`$ARGUMENTS` = `<feature_dir>/<name>`，2026-11-04 起）
+## Entry & re-entry（`$ARGUMENTS` = `#N` 或 feature 目錄）
 
-路徑一律從專案 `CLAUDE.md` 的 `## Harness config` 段讀：`feature_dir`（預設 `features/<name>/`；按版本分層的專案會是
-`features/v<version>/<name>/`）、`product_principles_doc`（預設 `docs/PRODUCT_PRINCIPLES.md`）、`lessons_dir`（預設 `lessons/`）。
+路徑一律從專案 `CLAUDE.md` 的 `## Harness config` 段讀：`feature_dir`（feature 根目錄，預設 `features/`；每項工作一個資料夾
+`<feature_dir>/<N>-<name>/`）、`product_principles_doc`（預設 `docs/PRODUCT_PRINCIPLES.md`）、`lessons_dir`（預設 `lessons/`）。
 
-**權威順序：產品原則 > `user_story.md` > plan 三文件。** 新 feature 一律先跑 `/user-story <需求>`（需求模式）：它建資料夾、派
-`codebase-researcher` 寫 `research.md`、寫完 story 並拍板，最後印 `/clear` → `/plan-feature <feature_dir>/<name>`。
-所以這支指令**沒有「從零開始」模式**：沒給路徑、或資料夾裡沒有拍板的 `user_story.md` → 請使用者先跑 `/user-story`，停。
+**先找到 feature 目錄**：`$ARGUMENTS` 是 `#N` → `find <feature_dir> -maxdepth 4 -type d -name 'N-*' -not -path '*/archive/*'`；是路徑就直接用。下文 `<feature_dir>/<N>-<name>` 都指它。
+
+**權威順序：產品原則 > `user_story.md` > plan 三文件。** 所有工作一律先 `/ticket`（立題、建資料夾）→ `/user-story #N`（需求模式：派
+`codebase-researcher` 寫 `research.md`、寫完 story 並拍板，最後印 `/clear` → `/plan-feature #N`）。
+所以這支指令**沒有「從零開始」模式**：找不到資料夾 → 請使用者先跑 `/ticket`；資料夾裡沒有拍板的 `user_story.md` → 請使用者先跑 `/user-story #N`，停。
+
+**級別**：讀 `user_story.md` 標頭的 `> ticket：ticket.md｜級別：<small|medium>` 那行；沒有這行一律當 **medium**。
+級別只影響兩處：S0.5 能不能跳過、S8 的 Inc 上限（見各站的「small」註記）。其餘每一站 small 與 medium 完全相同。
 
 每次進場（含每次 `/clear` 後）照這個順序讀，再看檔案停在哪一站：
 
 1. 產品原則文件 `<product_principles_doc>`（編號＝優先序；是 S0.5 drivers 常駐第一列）。
-2. `user_story.md` 整份——需求的唯一權威；S3 任何決策若讓某一則做不到或多出新情境，**回寫 story**（子號 `3b` 或原則標 🔄）並請使用者拍板，不能默默在 plan 蓋掉。
-3. `research.md` 整份（既有行為契約；每條決策要指名改哪幾條）。
-4. 然後：
-   - 沒有 `proposal.md`（或狀態列 `待拍板`）→ **S0**（只派 lessons-recaller）→ **S0.5**。
+2. `ticket.md`（當初要什麼：例子、不做、完成條件、待拍；有母題的連母題 `ticket.md` 的「共同決定」一起讀——E 條是既定前提，不重開）。
+3. `user_story.md` 整份——需求的唯一權威；S3 任何決策若讓某一則做不到或多出新情境，**回寫 story**（子號 `3b` 或原則標 🔄）並請使用者拍板，不能默默在 plan 蓋掉。
+4. `research.md` 整份（既有行為契約；每條決策要指名改哪幾條）。
+5. 然後：
+   - 沒有 `proposal.md`（或狀態列 `待拍板`）、`plan.md` 也沒有 → **S0**（只派 lessons-recaller）→ **S0.5**。
    - `proposal.md` `已選定方案 X`、還沒有 `plan.md` → 只讀 proposal 的 blockquote 頭、選中方案五節、對照表、使用者裁決；
      **跳過標題含 `❌ 落選` 的整節** → 從 **S1** 起，選中方案的「待解問題」是第一批議程。
    - `plan.md` 已有、`detailed-plan.md`／`test.md` 還沒有 → **S8**。
-   - 三份都有 → 規劃已完成，回報下一步是 `/build-feature`（或 `/build-and-review`），停。
+   - 三份都有 → 規劃已完成，回報下一步是 `/build-feature #N`（或 `/build-and-review #N`），停。
 
 ## Your Role
 
@@ -82,7 +88,7 @@ S3. Decision Walkthrough  — one concept at a time, with options + reasoning
 S4. Risk & Gotchas        — known failure modes and mitigations
 S5. Out of Scope          — explicit non-goals to prevent scope creep
 S6. Implementation Order  — dependency-ordered steps for separate commits
-S7. Write plan.md         — <feature_dir>/<name>/plan.md, then /clear
+S7. Write plan.md         — <feature_dir>/<N>-<name>/plan.md, then /clear
 S8. detailed-plan + test  — detailed-plan.md → self-scan → test.md [US n] → spec-gap-hunter → story_lock_check
 ```
 
@@ -107,8 +113,11 @@ The walkthrough proceeds linearly through these stages, but **the user may pause
    wrong plans, and plan is the cheapest place to avoid a known trap — the same lesson found in /build-feature or
    /auto-code-review costs a rewrite.
 0.5. **S0.5 — Propose two architectures, write `proposal.md`, let the user pick** (Ousterhout ch.11 "Design It Twice").
-   **Never skip it** — S1 drafting an endpoint spec silently picks an architecture, and a single option can't be judged
+   **medium: never skip it** — S1 drafting an endpoint spec silently picks an architecture, and a single option can't be judged
    without a second one to hold it against (even a bad second one).
+   **small only: conditional.** First answer in one line「有沒有兩個真的不一樣的做法？」. Yes → run S0.5 as below.
+   No → skip `proposal.md`; D0 becomes one line「沿用 <既有的 X> 的結構，無值得比的替代架構」, shown to the user as the **first thing in S1**;
+   the user may veto it and send you back to run S0.5. Then go straight on to S1 in the same session (no `/clear` needed — there is no losing design to forget).
    - **Two options, orthogonal**: they must point opposite ways on the one choice that matters most (where the data lives /
      which layer computes / sync vs overlay…), not two flavours of the same approach. Same-direction variants are S3 material.
      If option B breaks the user's literal wording of the request, keep it and label it `⚠️ 此方案挑戰需求原句`.
@@ -118,7 +127,7 @@ The walkthrough proceeds linearly through these stages, but **the user may pause
      for the user**; don't guess it）→ elegancy＋DRY＋maintainable → efficiency. Score elegancy/maintainable with Ousterhout's
      three questions (改動擴散／認知負擔／未知的未知); score DRY with the question「其中一邊的需求變了，另一邊一定要跟著變嗎？」
      (一定要＝merge；不一定＝keep apart, forcing it is information leakage) and write that answer as the evidence cell.
-   - **Write `<feature_dir>/<name>/proposal.md` in this shape** (one-off document, like research.md):
+   - **Write `<feature_dir>/<N>-<name>/proposal.md` in this shape** (one-off document, like research.md):
      ```markdown
      # Proposal：<feature 一句>
 
@@ -148,9 +157,9 @@ The walkthrough proceeds linearly through these stages, but **the user may pause
      After the pick, update the file (狀態列、落選標題、使用者裁決) and **stop with this hand-off** (a losing design left in
      context keeps leaking into the plan; the next session reads only the chosen one — see "Entry & re-entry"):
      ```
-     方案已寫入 <feature_dir>/<name>/proposal.md。接下來請貼這兩行：
+     方案已寫入 <feature_dir>/<N>-<name>/proposal.md。接下來請貼這兩行：
      /clear
-     /plan-feature <feature_dir>/<name>
+     /plan-feature #<N>
      ```
 1. **Start with S1 (Goal & Scope)** — draft endpoint spec, response shape, permissions, success/error contract. Confirm before any technical decision.
 2. **Move to S2 (Anatomy)** — map the request through 4–6 stages (e.g., Receive → Parse → Validate → Persist → Respond). This sets the mental model for S3.
@@ -166,12 +175,15 @@ The walkthrough proceeds linearly through these stages, but **the user may pause
    files alone: anything it can't find in `plan.md`＋`user_story.md`＋`research.md` is a gap in `plan.md`, fixed there, not
    answered from memory.
    ```
-   plan.md 已寫入 <feature_dir>/<name>/。接下來請貼這兩行：
+   plan.md 已寫入 <feature_dir>/<N>-<name>/。接下來請貼這兩行：
    /clear
-   /plan-feature <feature_dir>/<name>
+   /plan-feature #<N>
    ```
 7. **S8 — `detailed-plan.md` → `test.md`** (re-entered after the `/clear`; see "Output Format" for both skeletons):
    1. Write `detailed-plan.md` from `plan.md`＋`user_story.md`＋`research.md`.
+      **small: at most 3 Inc**, each section only landing spots＋signatures (same heading format `## <n>. <名>（C<n>；plan …；US …）`
+      — `inc_brief.py` and `/build-feature` depend on it). If it honestly needs a 4th Inc → **stop** and tell the user「超過 small 的上限，建議升 medium」
+      (升級＝改 `ticket.md` 檔頭、BACKLOG 該列、`user_story.md` 標頭那行三處的級別，然後回 S0.5 補跑 proposal)。
    2. **Self-scan it, by reading, not grep**: every line must leave the implementer only one reasonable thing to write.
       Hunt「處理 edge case」「加適當驗證」「為上面寫測試」「TBD／待定」, a function／type／parameter the plan cites but no
       section defines,「同 XX」with no location for XX — replace each on the spot with the concrete value／signature／position.
@@ -184,16 +196,15 @@ The walkthrough proceeds linearly through these stages, but **the user may pause
       touches, if the project keeps a backlog). Bring its gap table to the user **one item per message**: 規格漏寫 → fix the
       doc and say so; 新決策點 → A/B + recommendation, wait for the pick, write it into plan.md §4 (and user_story.md if a
       story changes). /build-feature Step 1 still runs it again per Inc for gaps that only show up while building.
-   5. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/story_lock_check.py <feature_dir>/<name>`: every story must be `mapped` or
-      `spec-only`, none `unmapped`, before you report the plan as done. Then report the next step: `/build-feature` or
-      `/build-and-review`.
+   5. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/story_lock_check.py <feature_dir>/<N>-<name>`: every story must be `mapped` or
+      `spec-only`, none `unmapped`, before you report the plan as done. Then report the next step: `/build-feature #<N>` or
+      `/build-and-review #<N>`.
 
 ## Output Format
 
 When the walkthrough is complete (or paused by the user), write to:
-`<feature_dir>/<name>/plan.md` — the same folder that already holds `user_story.md`, `research.md` and `proposal.md`
-(`feature_dir` from `Harness config`; if the project groups features by release, e.g. `features/v<version>/<name>/`, follow
-the existing layout; the old single-file `features/<name>.md` location is retired).
+`<feature_dir>/<N>-<name>/plan.md` — the same folder that already holds `user_story.md`, `research.md` and `proposal.md`
+(the folder is created by `/ticket`; `feature_dir` from `Harness config`).
 
 Use this exact section skeleton:
 
